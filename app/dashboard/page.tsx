@@ -6,7 +6,6 @@ import {
 } from "lucide-react";
 import { cn, PRIORITY_CONFIG, formatDate, isOverdue, timeAgo } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
-import { MEMBERS } from "@/lib/mock-data";
 import { TaskModal } from "@/components/modals/task-modal";
 import { useAuth } from "@/components/auth-provider";
 
@@ -14,9 +13,7 @@ export default function DashboardPage() {
   const tasks = useAppStore((s) => s.tasks);
   const selectedTask = useAppStore((s) => s.selectedTask);
   const setSelectedTask = useAppStore((s) => s.setSelectedTask);
-  const projects = useAppStore((s) => s.projects);
-  const activeProjectId = useAppStore((s) => s.activeProjectId);
-  const activeProject = projects.find((p) => p.id === activeProjectId);
+  const activities = useAppStore((s) => s.activities);
   const { user } = useAuth();
   const displayName =
     (user?.user_metadata?.full_name as string | undefined) ??
@@ -25,9 +22,11 @@ export default function DashboardPage() {
 
   const today = new Date().toISOString().split("T")[0];
   const dueTodayTasks = tasks.filter((t) => t.dueDate === today && t.status !== "done");
-  const myTasks = tasks.filter((t) =>
-    t.assignees.some((a) => a.id === "m1") && t.status !== "done"
-  );
+  const myTasks = user
+    ? tasks.filter((t) =>
+        t.assignees.some((a) => a.id === user.id) && t.status !== "done"
+      )
+    : [];
   const overdueTasks = tasks.filter((t) => isOverdue(t.dueDate) && t.status !== "done");
   const doneTasks = tasks.filter((t) => t.status === "done");
 
@@ -123,17 +122,19 @@ export default function DashboardPage() {
                 <Flame className="w-4 h-4 text-orange-400" />
               </div>
               <div className="divide-y divide-white/70">
-                {(activeProject?.activities ?? []).map((item) => (
+                {activities.map((item) => (
                   <div key={item.id} className="flex gap-3 px-4 py-3">
                     <div
                       className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0 mt-0.5"
-                      style={{ backgroundColor: item.user.color }}
+                      style={{ backgroundColor: item.user?.color ?? "#94a3b8" }}
                     >
-                      {item.user.initials}
+                      {item.user?.initials ?? "?"}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-slate-600 leading-snug">
-                        <span className="font-semibold text-slate-800">{item.user.name.split(" ")[0]}</span>
+                        <span className="font-semibold text-slate-800">
+                          {item.user?.name?.split(" ")[0] ?? "Someone"}
+                        </span>
                         {" "}{item.action}{" "}
                         <span className="text-brand-600 font-medium truncate">{item.target}</span>
                       </p>

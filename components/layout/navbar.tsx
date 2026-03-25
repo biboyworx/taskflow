@@ -52,9 +52,10 @@ export function Navbar() {
   const filterPriority = useAppStore((s) => s.filterPriority);
   const setSearchQuery = useAppStore((s) => s.setSearchQuery);
   const setFilterPriority = useAppStore((s) => s.setFilterPriority);
-  const sessionExpired = useAppStore((s) => s.sessionExpired);
   const projects = useAppStore((s) => s.projects);
   const activeProjectId = useAppStore((s) => s.activeProjectId);
+  const members = useAppStore((s) => s.members);
+  const currentMemberRole = useAppStore((s) => s.currentMemberRole);
   const activeProject = projects.find((p) => p.id === activeProjectId);
 
   // useEffect(() => {
@@ -163,7 +164,7 @@ export function Navbar() {
   const handleGoogleSignIn = useCallback(async () => {
     setIsGoogleLoading(true);
     try {
-      await signInWithGoogle(window.location.origin);
+      await signInWithGoogle(`${window.location.origin}/auth/callback`);
     } catch (signInError) {
       const message =
         signInError instanceof Error
@@ -179,6 +180,10 @@ export function Navbar() {
     const normalizedEmail = inviteEmail.trim().toLowerCase();
     if (!normalizedEmail) {
       toast.error("Please enter an email address");
+      return;
+    }
+    if (!activeProjectId) {
+      toast.error("Select a project first");
       return;
     }
 
@@ -299,7 +304,7 @@ export function Navbar() {
         {/* Members */}
         {isAuthenticated && (
           <div className="flex items-center -space-x-2">
-            {(activeProject?.members ?? []).slice(0, 4).map((m) => (
+            {members.slice(0, 4).map((m) => (
               <div
                 key={m.id}
                 title={m.name}
@@ -309,15 +314,15 @@ export function Navbar() {
                 {m.initials}
               </div>
             ))}
-            {(activeProject?.members?.length ?? 0) > 4 && (
+            {members.length > 4 && (
               <div className="w-7 h-7 rounded-full bg-surface-100 flex items-center justify-center text-[11px] font-bold text-slate-500 ring-2 ring-white">
-                +{(activeProject?.members.length ?? 0) - 4}
+                +{members.length - 4}
               </div>
             )}
           </div>
         )}
 
-        {isAuthenticated && (
+        {isAuthenticated && currentMemberRole === "owner" && (
           <div className="relative">
             <button
               onClick={() => setShowInvite(!showInvite)}
@@ -438,11 +443,6 @@ export function Navbar() {
               </div>
             )}
             <div className="space-y-3">
-              {sessionExpired && (
-                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2">
-                  Session expired due to inactivity. Please sign in again.
-                </p>
-              )}
               {authMode === "signup" && (
                 <input
                   type="text"

@@ -8,7 +8,6 @@ import {
 import { cn, PRIORITY_CONFIG, timeAgo, formatDate } from "@/lib/utils";
 import { Task, Priority, TaskStatus } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
-import { MEMBERS, TAGS } from "@/lib/mock-data";
 import { useAuth } from "@/components/auth-provider";
 
 interface TaskModalProps {
@@ -23,6 +22,8 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
   const addChecklistItem = useAppStore((s) => s.addChecklistItem);
   const deleteTask = useAppStore((s) => s.deleteTask);
   const columns = useAppStore((s) => s.columns);
+  const members = useAppStore((s) => s.members);
+  const tags = useAppStore((s) => s.tags);
   const { user } = useAuth();
 
   const actor = useMemo(() => {
@@ -55,7 +56,7 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
   }, [user]);
 
   const updateTaskWithActor = (updates: Partial<Task>) =>
-    updateTask(task.id, updates, actor ?? undefined);
+    void updateTask(task.id, updates, actor ?? undefined);
 
   const [commentText, setCommentText] = useState("");
   const [newCheckItem, setNewCheckItem] = useState("");
@@ -94,20 +95,21 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
 
   const handleAddComment = () => {
     if (!commentText.trim()) return;
-    addComment(task.id, commentText, actor ?? undefined);
+    void addComment(task.id, commentText, actor ?? undefined);
     setCommentText("");
   };
 
   const handleAddChecklist = () => {
     if (!newCheckItem.trim()) return;
-    addChecklistItem(task.id, newCheckItem);
+    void addChecklistItem(task.id, newCheckItem);
     setNewCheckItem("");
     setAddingCheck(false);
   };
 
   const handleToggleAssignee = (memberId: string) => {
     const isAssigned = task.assignees.some((a) => a.id === memberId);
-    const member = MEMBERS.find((m) => m.id === memberId)!;
+    const member = members.find((m) => m.id === memberId);
+    if (!member) return;
     const newAssignees = isAssigned
       ? task.assignees.filter((a) => a.id !== memberId)
       : [...task.assignees, member];
@@ -116,7 +118,8 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
 
   const handleToggleTag = (tagId: string) => {
     const hasTag = task.tags.some((t) => t.id === tagId);
-    const tag = TAGS.find((t) => t.id === tagId)!;
+    const tag = tags.find((t) => t.id === tagId);
+    if (!tag) return;
     const newTags = hasTag ? task.tags.filter((t) => t.id !== tagId) : [...task.tags, tag];
     updateTaskWithActor({ tags: newTags });
   };
@@ -205,7 +208,7 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => { deleteTask(task.id, actor ?? undefined); onClose(); }}
+              onClick={() => { void deleteTask(task.id, actor ?? undefined); onClose(); }}
               className="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors"
             >
               <Trash2 className="w-4 h-4" />
@@ -278,7 +281,7 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
                     </button>
                     {showMemberPicker && (
                       <div className="absolute top-6 right-0 z-10 bg-white/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 p-2 w-52 animate-scale-in">
-                        {MEMBERS.map((m) => {
+                        {members.map((m) => {
                           const assigned = task.assignees.some((a) => a.id === m.id);
                           return (
                             <button
@@ -338,7 +341,7 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
                   </button>
                   {showTagPicker && (
                     <div className="absolute top-6 right-0 z-10 bg-white/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 p-2 w-44 animate-scale-in">
-                      {TAGS.map((tag) => {
+                      {tags.map((tag) => {
                         const hasTag = task.tags.some((t) => t.id === tag.id);
                         return (
                           <button
@@ -455,7 +458,7 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
                   <div
                     key={item.id}
                     className="flex items-center gap-2.5 group px-2 py-1.5 rounded-lg hover:bg-white/70 transition-colors cursor-pointer"
-                    onClick={() => toggleChecklistItem(task.id, item.id)}
+                    onClick={() => void toggleChecklistItem(task.id, item.id)}
                   >
                     <div className={cn(
                       "w-4 h-4 rounded flex items-center justify-center border transition-all shrink-0",
@@ -552,13 +555,15 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
                   <div key={comment.id} className="flex gap-3 animate-fade-in">
                     <div
                       className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-0.5"
-                      style={{ backgroundColor: comment.author.color }}
+                      style={{ backgroundColor: comment.author?.color ?? "#94a3b8" }}
                     >
-                      {comment.author.initials}
+                      {comment.author?.initials ?? "?"}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-baseline gap-2 mb-1">
-                        <span className="text-sm font-semibold text-slate-800">{comment.author.name}</span>
+                        <span className="text-sm font-semibold text-slate-800">
+                          {comment.author?.name ?? "Unknown"}
+                        </span>
                         <span className="text-xs text-slate-400">{timeAgo(comment.createdAt)}</span>
                       </div>
                       <p className="text-sm text-slate-600 leading-relaxed bg-white/70 px-3 py-2.5 rounded-xl rounded-tl-sm">

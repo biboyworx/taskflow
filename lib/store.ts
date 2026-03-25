@@ -1,19 +1,60 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { Task, TaskStatus, ChecklistItem, Comment, Member, Column, Project } from "./types";
-import { INITIAL_TASKS, MEMBERS, ACTIVITY_FEED } from "./mock-data";
-import { DEFAULT_COLUMNS, getColumnTheme } from "./utils";
+import type {
+  ActivityItem,
+  ChecklistItem,
+  Column,
+  Comment,
+  Invite,
+  Member,
+  Project,
+  Tag,
+  Task,
+  TaskStatus,
+} from "./types";
+import { supabase } from "@/lib/supabase";
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string | null | undefined) {
+  return !!value && UUID_REGEX.test(value);
+}
+import {
+  addChecklistItem as addChecklistItemApi,
+  addComment as addCommentApi,
+  acceptInvite as acceptInviteApi,
+  createActivity,
+  createColumn as createColumnApi,
+  createProject as createProjectApi,
+  createTask as createTaskApi,
+  deleteProject as deleteProjectApi,
+  deleteTask as deleteTaskApi,
+  fetchActivities,
+  fetchColumns,
+  fetchInvites,
+  fetchProjectMembers,
+  fetchProjects,
+  fetchTags,
+  fetchTasks,
+  declineInvite as declineInviteApi,
+  moveTask as moveTaskApi,
+  setTaskAssignees,
+  setTaskTags,
+  toggleChecklistItem as toggleChecklistItemApi,
+  updateTask as updateTaskApi,
+} from "./data";
+import { getColumnTheme } from "./utils";
 
 interface AppState {
   tasks: Task[];
   columns: Column[];
   projects: Project[];
-  activeProjectId: string;
-  authUser: { email: string; name: string; initials: string } | null;
-  isAuthenticated: boolean;
-  sessionStartedAt: string | null;
-  sessionLastActiveAt: string | null;
-  sessionExpired: boolean;
+  members: Member[];
+  tags: Tag[];
+  activities: ActivityItem[];
+  invites: Invite[];
+  activeProjectId: string | null;
+  currentMemberRole: string | null;
   preferences: {
     compactMode: boolean;
     showCompleted: boolean;
@@ -26,60 +67,55 @@ interface AppState {
   activeView: "board" | "dashboard";
   searchQuery: string;
   filterPriority: string | null;
-  taskCounter: number;
+  isDataLoading: boolean;
 
   // Actions
   setSelectedTask: (task: Task | null) => void;
-  setActiveProject: (projectId: string) => void;
-  addProject: (name: string) => void;
-  deleteProject: (projectId: string) => void;
-  signIn: (email: string, password: string) => boolean;
-  signOut: () => void;
-  touchSession: () => void;
-  checkSession: () => void;
-  updateAuthProfile: (name: string, email: string) => void;
+  setProjects: (projects: Project[]) => void;
+  setColumns: (columns: Column[]) => void;
+  setTasks: (tasks: Task[]) => void;
+  setMembers: (members: Member[]) => void;
+  setTags: (tags: Tag[]) => void;
+  setActivities: (activities: ActivityItem[]) => void;
+  setInvites: (invites: Invite[]) => void;
+  setCurrentMemberRole: (role: string | null) => void;
+  setActiveProject: (projectId: string | null) => void;
+  setDataLoading: (isLoading: boolean) => void;
+  loadProjects: (userId: string) => Promise<void>;
+  loadProjectData: (projectId: string, userId?: string) => Promise<void>;
+  loadInvites: (email: string) => Promise<void>;
+  addProject: (name: string) => Promise<void>;
+  deleteProject: (projectId: string, ownerId: string) => Promise<void>;
+  acceptInvite: (invite: Invite, userId: string) => Promise<void>;
+  declineInvite: (inviteId: string) => Promise<void>;
   updatePreferences: (updates: Partial<AppState["preferences"]>) => void;
-  updateTask: (taskId: string, updates: Partial<Task>, actor?: Member) => void;
-  moveTask: (taskId: string, newStatus: TaskStatus, actor?: Member) => void;
-  addColumn: (title: string) => void;
-  addTask: (task: Omit<Task, "id" | "order">, actor?: Member) => void;
-  deleteTask: (taskId: string, actor?: Member) => void;
-  addComment: (taskId: string, text: string, actor?: Member) => void;
-  toggleChecklistItem: (taskId: string, itemId: string) => void;
-  addChecklistItem: (taskId: string, text: string) => void;
+  updateTask: (taskId: string, updates: Partial<Task>, actor?: Member) => Promise<void>;
+  moveTask: (taskId: string, newStatus: TaskStatus, actor?: Member) => Promise<void>;
+  addColumn: (title: string, projectId: string) => Promise<void>;
+  addTask: (task: Omit<Task, "id" | "order">, actor?: Member) => Promise<void>;
+  deleteTask: (taskId: string, actor?: Member) => Promise<void>;
+  addComment: (taskId: string, text: string, actor?: Member) => Promise<void>;
+  toggleChecklistItem: (taskId: string, itemId: string) => Promise<void>;
+  addChecklistItem: (taskId: string, text: string) => Promise<void>;
   toggleSidebar: () => void;
   setActiveView: (view: "board" | "dashboard") => void;
   setSearchQuery: (q: string) => void;
   setFilterPriority: (p: string | null) => void;
-  reorderTasks: (activeId: string, overId: string, newStatus: TaskStatus) => void;
+  reorderTasks: (activeId: string, overId: string, newStatus: TaskStatus) => Promise<void>;
 }
-
-const DEFAULT_TASK_COUNTER = INITIAL_TASKS.length + 1;
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      tasks: INITIAL_TASKS,
-      columns: DEFAULT_COLUMNS,
-      projects: [
-        {
-          id: "proj-1",
-          name: "Taskflow v2.0",
-          description: "Next generation of our flagship product",
-          color: "#14b8a6",
-          emoji: "🚀",
-          members: MEMBERS,
-          tasks: INITIAL_TASKS,
-          activities: ACTIVITY_FEED,
-        },
-      ],
-      activeProjectId: "proj-1",
-      authUser: null,
-      isAuthenticated: false,
-      sessionStartedAt: null,
-      sessionLastActiveAt: null,
-      sessionExpired: false,
+      tasks: [],
+      columns: [],
+      projects: [],
+      members: [],
+      tags: [],
+      activities: [],
+      invites: [],
+      activeProjectId: null,
+      currentMemberRole: null,
       preferences: {
         compactMode: false,
         showCompleted: true,
@@ -92,255 +128,284 @@ export const useAppStore = create<AppState>()(
       activeView: "board",
       searchQuery: "",
       filterPriority: null,
-      taskCounter: DEFAULT_TASK_COUNTER,
+      isDataLoading: false,
 
       setSelectedTask: (task) => set({ selectedTask: task }),
 
-      signIn: (email, password) => {
-        const normalizedEmail = email.trim().toLowerCase();
-        const isValid = normalizedEmail === "test@test.com" && password === "test123";
-        if (!isValid) return false;
-        set({
-          authUser: { email: normalizedEmail, name: "Test User", initials: "TU" },
-          isAuthenticated: true,
-          sessionStartedAt: new Date().toISOString(),
-          sessionLastActiveAt: new Date().toISOString(),
-          sessionExpired: false,
-        });
-        return true;
+      setProjects: (projects) => set({ projects }),
+      setColumns: (columns) => set({ columns }),
+      setTasks: (tasks) => set({ tasks }),
+      setMembers: (members) => set({ members }),
+      setTags: (tags) => set({ tags }),
+      setActivities: (activities) => set({ activities }),
+      setInvites: (invites) => set({ invites }),
+      setCurrentMemberRole: (role) => set({ currentMemberRole: role }),
+      setActiveProject: (projectId) => set({ activeProjectId: projectId, selectedTask: null }),
+      setDataLoading: (isLoading) => set({ isDataLoading: isLoading }),
+
+      loadProjects: async (userId) => {
+        set({ isDataLoading: true });
+        try {
+          const projects = await fetchProjects(userId);
+          set((state) => {
+            const current = isUuid(state.activeProjectId)
+              ? state.activeProjectId
+              : null;
+            const exists = current && projects.some((p) => p.id === current);
+            return {
+              projects,
+              activeProjectId: exists ? current : projects[0]?.id ?? null,
+            };
+          });
+        } finally {
+          set({ isDataLoading: false });
+        }
       },
 
-      signOut: () =>
-        set({
-          authUser: null,
-          isAuthenticated: false,
-          sessionStartedAt: null,
-          sessionLastActiveAt: null,
-          sessionExpired: false,
-        }),
+      loadProjectData: async (projectId, userId) => {
+        set({ isDataLoading: true });
+        try {
+          const [columns, tasks, members, tags, activities] = await Promise.all([
+            fetchColumns(projectId),
+            fetchTasks(projectId),
+            fetchProjectMembers(projectId),
+            fetchTags(projectId),
+            fetchActivities(projectId),
+          ]);
+          const currentRole = userId
+            ? members.find((m) => m.id === userId)?.role ?? null
+            : null;
+          set({
+            columns,
+            tasks,
+            members,
+            tags,
+            activities,
+            activeProjectId: projectId,
+            currentMemberRole: currentRole,
+          });
+        } finally {
+          set({ isDataLoading: false });
+        }
+      },
 
-      touchSession: () =>
-        set((state) =>
-          state.isAuthenticated
-            ? { sessionLastActiveAt: new Date().toISOString() }
-            : state
-        ),
-
-      checkSession: () =>
-        set((state) => {
-          if (!state.isAuthenticated || !state.sessionLastActiveAt) return state;
-          const lastActive = new Date(state.sessionLastActiveAt).getTime();
-          const now = Date.now();
-          if (now - lastActive < SESSION_TIMEOUT_MS) return state;
-          return {
-            authUser: null,
-            isAuthenticated: false,
-            sessionStartedAt: null,
-            sessionLastActiveAt: null,
-            sessionExpired: true,
-          };
-        }),
-
-      updateAuthProfile: (name, email) =>
-        set((state) => {
-          if (!state.authUser) return state;
-          const trimmedName = name.trim();
-          const trimmedEmail = email.trim().toLowerCase();
-          const initials = trimmedName
-            .split(" ")
-            .filter(Boolean)
-            .slice(0, 2)
-            .map((part) => part[0])
-            .join("")
-            .toUpperCase();
-          return {
-            authUser: {
-              ...state.authUser,
-              name: trimmedName || state.authUser.name,
-              email: trimmedEmail || state.authUser.email,
-              initials: initials || state.authUser.initials,
-            },
-          };
-        }),
+      loadInvites: async (email) => {
+        const invites = await fetchInvites(email);
+        set({ invites });
+      },
 
       updatePreferences: (updates) =>
         set((state) => ({
           preferences: { ...state.preferences, ...updates },
         })),
 
-      setActiveProject: (projectId) =>
-        set((state) => {
-          const project = state.projects.find((p) => p.id === projectId);
-          if (!project) return state;
-          return {
-            activeProjectId: projectId,
-            tasks: project.tasks,
-            selectedTask: null,
-          };
-        }),
-
-      addProject: (name) => {
+      addProject: async (name) => {
         const trimmedName = name.trim();
         if (!trimmedName) return;
-        const id = `proj-${Date.now()}`;
-        const newProject: Project = {
-          id,
-          name: trimmedName,
-          description: "",
-          color: "#14b8a6",
-          emoji: "📁",
-          members: MEMBERS,
-          tasks: [],
-          activities: [],
-        };
-        set((state) => ({
-          projects: [...state.projects, newProject],
-          activeProjectId: id,
-          tasks: [],
-          selectedTask: null,
-        }));
+        const project = await createProjectApi({ name: trimmedName });
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const projects = user ? await fetchProjects(user.id) : [];
+        set({ projects, activeProjectId: project.id, selectedTask: null });
+        await get().loadProjectData(project.id, user?.id ?? undefined);
       },
 
-      deleteProject: (projectId) =>
-        set((state) => {
-          if (state.projects.length <= 1) return state;
-          const nextProjects = state.projects.filter((p) => p.id !== projectId);
-          const nextActiveId = state.activeProjectId === projectId
-            ? nextProjects[0]?.id
-            : state.activeProjectId;
-          const nextActiveProject = nextProjects.find((p) => p.id === nextActiveId);
-          return {
-            projects: nextProjects,
-            activeProjectId: nextActiveId,
-            tasks: nextActiveProject?.tasks ?? [],
-            selectedTask: null,
-          };
-        }),
+      deleteProject: async (projectId, ownerId) => {
+        await deleteProjectApi(projectId);
+        const projects = await fetchProjects(ownerId);
+        const nextProjectId = projects[0]?.id ?? null;
+        set({ projects, activeProjectId: nextProjectId, selectedTask: null });
+        if (nextProjectId) {
+          await get().loadProjectData(nextProjectId, ownerId);
+        } else {
+          set({ columns: [], tasks: [], members: [], tags: [], activities: [], currentMemberRole: null });
+        }
+      },
 
-      updateTask: (taskId, updates, actor) =>
+      acceptInvite: async (invite, userId) => {
+        await acceptInviteApi({
+          inviteId: invite.id,
+          projectId: invite.projectId,
+          userId,
+        });
+        await get().loadProjects(userId);
+        await get().loadProjectData(invite.projectId, userId);
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user?.email) {
+          await get().loadInvites(userData.user.email);
+        }
+      },
+
+      declineInvite: async (inviteId) => {
+        await declineInviteApi(inviteId);
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user?.email) {
+          await get().loadInvites(userData.user.email);
+        }
+      },
+
+      updateTask: async (taskId, updates, actor) => {
+        const projectId = get().activeProjectId;
+        const taskBefore = get().tasks.find((t) => t.id === taskId);
+        await updateTaskApi(taskId, updates);
+
+        if (updates.assignees) {
+          await setTaskAssignees(taskId, updates.assignees.map((a) => a.id));
+        }
+        if (updates.tags) {
+          await setTaskTags(taskId, updates.tags.map((t) => t.id));
+        }
+
+        if (actor && projectId) {
+          await createActivity({
+            projectId,
+            actorId: actor.id,
+            action: "updated",
+            target: updates.title ?? taskBefore?.title ?? "Task",
+          });
+        }
+
         set((state) => {
-          const activeProject = state.projects.find((p) => p.id === state.activeProjectId);
-          const taskBefore = activeProject?.tasks.find((t) => t.id === taskId);
           const tasks = state.tasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t));
-          const activity = taskBefore
+          const activity = actor
             ? {
                 id: `act-${Date.now()}`,
-                user: actor ?? MEMBERS[0],
+                user: actor,
                 action: "updated",
-                target: taskBefore.title,
+                target: state.tasks.find((t) => t.id === taskId)?.title ?? "Task",
                 createdAt: new Date().toISOString(),
               }
             : null;
-          const projects = state.projects.map((p) =>
-            p.id === state.activeProjectId
-              ? { ...p, tasks, activities: activity ? [activity, ...(p.activities ?? [])] : (p.activities ?? []) }
-              : p
-          );
           return {
             tasks,
-            projects,
-            selectedTask: state.selectedTask?.id === taskId ? { ...state.selectedTask, ...updates } : state.selectedTask,
+            activities: activity ? [activity, ...state.activities] : state.activities,
+            selectedTask: state.selectedTask?.id === taskId
+              ? { ...state.selectedTask, ...updates }
+              : state.selectedTask,
           };
-        }),
+        });
+      },
 
-      moveTask: (taskId, newStatus, actor) => {
+      moveTask: async (taskId, newStatus, actor) => {
         const state = get();
+        const taskBefore = state.tasks.find((t) => t.id === taskId);
         const tasksInColumn = state.tasks.filter((t) => t.status === newStatus);
+        await moveTaskApi(taskId, newStatus, tasksInColumn.length);
+        if (actor && state.activeProjectId) {
+          await createActivity({
+            projectId: state.activeProjectId,
+            actorId: actor.id,
+            action: "moved",
+            target: taskBefore?.title ?? "Task",
+          });
+        }
         set((s) => {
           const taskBefore = s.tasks.find((t) => t.id === taskId);
           const tasks = s.tasks.map((t) =>
             t.id === taskId ? { ...t, status: newStatus, order: tasksInColumn.length } : t
           );
-          const activity = taskBefore
+          const activity = taskBefore && actor
             ? {
                 id: `act-${Date.now()}`,
-                user: actor ?? MEMBERS[0],
+                user: actor,
                 action: "moved",
-                target: `${taskBefore.title} to ${newStatus}`,
+                target: `${taskBefore.title}`,
                 createdAt: new Date().toISOString(),
               }
             : null;
-          const projects = s.projects.map((p) =>
-            p.id === s.activeProjectId
-              ? { ...p, tasks, activities: activity ? [activity, ...(p.activities ?? [])] : (p.activities ?? []) }
-              : p
-          );
           return {
             tasks,
-            projects,
+            activities: activity ? [activity, ...s.activities] : s.activities,
             selectedTask: s.selectedTask?.id === taskId ? { ...s.selectedTask, status: newStatus } : s.selectedTask,
           };
         });
       },
 
-      addColumn: (title) => {
+      addColumn: async (title, projectId) => {
         const trimmedTitle = title.trim();
         if (!trimmedTitle) return;
         const state = get();
-        const theme = getColumnTheme(state.columns.length);
-        const newColumn: Column = {
-          id: `col-${Date.now()}`,
+        const newColumn = await createColumnApi({
+          projectId,
           title: trimmedTitle,
-          ...theme,
-        };
+          position: state.columns.length,
+        });
         set((s) => ({ columns: [...s.columns, newColumn] }));
       },
 
-      addTask: (task, actor) => {
+      addTask: async (task, actor) => {
         const state = get();
+        if (!state.activeProjectId) return;
         const tasksInColumn = state.tasks.filter((t) => t.status === task.status);
-        const newTask: Task = {
-          ...task,
-          id: `task-${state.taskCounter}`,
+        await createTaskApi({
+          projectId: state.activeProjectId,
+          columnId: task.status,
+          title: task.title,
+          priority: task.priority,
+          assigneeIds: task.assignees.map((a) => a.id),
           order: tasksInColumn.length,
-        };
-        set((s) => {
-          const activity = {
-            id: `act-${Date.now()}`,
-            user: actor ?? MEMBERS[0],
-            action: "added",
-            target: newTask.title,
-            createdAt: new Date().toISOString(),
-          };
-          const tasks = [...s.tasks, newTask];
-          const projects = s.projects.map((p) =>
-            p.id === s.activeProjectId
-              ? { ...p, tasks, activities: [activity, ...(p.activities ?? [])] }
-              : p
-          );
-          return { tasks, projects, taskCounter: s.taskCounter + 1 };
         });
+        const { data: userData } = await supabase.auth.getUser();
+        await state.loadProjectData(state.activeProjectId, userData?.user?.id ?? undefined);
+        if (actor) {
+          await createActivity({
+            projectId: state.activeProjectId,
+            actorId: actor.id,
+            action: "added",
+            target: task.title,
+          });
+        }
       },
 
-      deleteTask: (taskId, actor) =>
+      deleteTask: async (taskId, actor) => {
+        const state = get();
+        const taskBefore = state.tasks.find((t) => t.id === taskId);
+        await deleteTaskApi(taskId);
+        if (actor && state.activeProjectId) {
+          await createActivity({
+            projectId: state.activeProjectId,
+            actorId: actor.id,
+            action: "deleted",
+            target: taskBefore?.title ?? "Task",
+          });
+        }
         set((s) => {
           const taskBefore = s.tasks.find((t) => t.id === taskId);
           const tasks = s.tasks.filter((t) => t.id !== taskId);
-          const activity = taskBefore
+          const activity = taskBefore && actor
             ? {
                 id: `act-${Date.now()}`,
-                user: actor ?? MEMBERS[0],
+                user: actor,
                 action: "deleted",
                 target: taskBefore.title,
                 createdAt: new Date().toISOString(),
               }
             : null;
-          const projects = s.projects.map((p) =>
-            p.id === s.activeProjectId
-              ? { ...p, tasks, activities: activity ? [activity, ...(p.activities ?? [])] : (p.activities ?? []) }
-              : p
-          );
           return {
             tasks,
-            projects,
+            activities: activity ? [activity, ...s.activities] : s.activities,
             selectedTask: s.selectedTask?.id === taskId ? null : s.selectedTask,
           };
-        }),
+        });
+      },
 
-      addComment: (taskId, text, actor) => {
+      addComment: async (taskId, text, actor) => {
+        if (!actor) return;
+        const taskBefore = get().tasks.find((t) => t.id === taskId);
+        await addCommentApi(taskId, actor.id, text);
+        const projectId = get().activeProjectId;
+        if (projectId) {
+          await createActivity({
+            projectId,
+            actorId: actor.id,
+            action: "commented on",
+            target: taskBefore?.title ?? "Task",
+          });
+        }
         const newComment: Comment = {
           id: `comment-${Date.now()}`,
-          author: actor ?? MEMBERS[0],
+          author: actor,
           text,
           createdAt: new Date().toISOString(),
         };
@@ -352,20 +417,15 @@ export const useAppStore = create<AppState>()(
           const activity = taskBefore
             ? {
                 id: `act-${Date.now()}`,
-                user: actor ?? MEMBERS[0],
+                user: actor,
                 action: "commented on",
                 target: taskBefore.title,
                 createdAt: new Date().toISOString(),
               }
             : null;
-          const projects = s.projects.map((p) =>
-            p.id === s.activeProjectId
-              ? { ...p, tasks, activities: activity ? [activity, ...(p.activities ?? [])] : (p.activities ?? []) }
-              : p
-          );
           return {
             tasks,
-            projects,
+            activities: activity ? [activity, ...s.activities] : s.activities,
             selectedTask:
               s.selectedTask?.id === taskId
                 ? { ...s.selectedTask, comments: [...s.selectedTask.comments, newComment] }
@@ -374,30 +434,34 @@ export const useAppStore = create<AppState>()(
         });
       },
 
-      toggleChecklistItem: (taskId, itemId) =>
+      toggleChecklistItem: async (taskId, itemId) => {
+        const task = get().tasks.find((t) => t.id === taskId);
+        const item = task?.checklist.find((i) => i.id === itemId);
+        if (!item) return;
+        await toggleChecklistItemApi(itemId, !item.done);
         set((s) => {
           const updatedTasks = s.tasks.map((t) =>
             t.id === taskId
               ? {
                   ...t,
-                  checklist: t.checklist.map((item) =>
-                    item.id === itemId ? { ...item, done: !item.done } : item
+                  checklist: t.checklist.map((checkItem) =>
+                    checkItem.id === itemId ? { ...checkItem, done: !checkItem.done } : checkItem
                   ),
                 }
               : t
           );
           const updatedTask = updatedTasks.find((t) => t.id === taskId);
-          const projects = s.projects.map((p) =>
-            p.id === s.activeProjectId ? { ...p, tasks: updatedTasks } : p
-          );
           return {
             tasks: updatedTasks,
-            projects,
             selectedTask: s.selectedTask?.id === taskId ? updatedTask || null : s.selectedTask,
           };
-        }),
+        });
+      },
 
-      addChecklistItem: (taskId, text) => {
+      addChecklistItem: async (taskId, text) => {
+        const task = get().tasks.find((t) => t.id === taskId);
+        const position = task?.checklist.length ?? 0;
+        await addChecklistItemApi(taskId, text, position);
         const newItem: ChecklistItem = {
           id: `cl-${Date.now()}`,
           text,
@@ -408,12 +472,8 @@ export const useAppStore = create<AppState>()(
             t.id === taskId ? { ...t, checklist: [...t.checklist, newItem] } : t
           );
           const updatedTask = updatedTasks.find((t) => t.id === taskId);
-          const projects = s.projects.map((p) =>
-            p.id === s.activeProjectId ? { ...p, tasks: updatedTasks } : p
-          );
           return {
             tasks: updatedTasks,
-            projects,
             selectedTask: s.selectedTask?.id === taskId ? updatedTask || null : s.selectedTask,
           };
         });
@@ -424,7 +484,8 @@ export const useAppStore = create<AppState>()(
       setSearchQuery: (q) => set({ searchQuery: q }),
       setFilterPriority: (p) => set({ filterPriority: p }),
 
-      reorderTasks: (activeId, overId, newStatus) => {
+      reorderTasks: async (activeId, overId, newStatus) => {
+        let nextOrder = 0;
         set((s) => {
           const tasks = [...s.tasks];
           const activeIdx = tasks.findIndex((t) => t.id === activeId);
@@ -441,12 +502,18 @@ export const useAppStore = create<AppState>()(
             tasks.splice(newOverIdx, 0, updatedActive);
           }
 
-          const projects = s.projects.map((p) =>
-            p.id === s.activeProjectId ? { ...p, tasks } : p
-          );
+          const columnTasks = tasks
+            .filter((t) => t.status === newStatus)
+            .map((t, index) => ({ ...t, order: index }));
 
-          return { tasks, projects };
+          const others = tasks.filter((t) => t.status !== newStatus);
+          const merged = [...others, ...columnTasks];
+          nextOrder = columnTasks.find((t) => t.id === activeId)?.order ?? 0;
+
+          return { tasks: merged };
         });
+
+        await moveTaskApi(activeId, newStatus, nextOrder);
       },
     }),
     {
@@ -455,20 +522,11 @@ export const useAppStore = create<AppState>()(
         typeof window !== "undefined" ? localStorage : (undefined as unknown as Storage)
       ),
       partialize: (state) => ({
-        tasks: state.tasks,
-        columns: state.columns,
-        projects: state.projects,
-        activeProjectId: state.activeProjectId,
-        authUser: state.authUser,
-        isAuthenticated: state.isAuthenticated,
-        sessionStartedAt: state.sessionStartedAt,
-        sessionLastActiveAt: state.sessionLastActiveAt,
-        sessionExpired: state.sessionExpired,
         preferences: state.preferences,
         sidebarCollapsed: state.sidebarCollapsed,
         searchQuery: state.searchQuery,
         filterPriority: state.filterPriority,
-        taskCounter: state.taskCounter,
+        activeProjectId: state.activeProjectId,
       }),
     }
   )

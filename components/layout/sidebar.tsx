@@ -36,6 +36,8 @@ export function Sidebar() {
   const setActiveProject = useAppStore((s) => s.setActiveProject);
   const addProject = useAppStore((s) => s.addProject);
   const deleteProject = useAppStore((s) => s.deleteProject);
+  const loadProjectData = useAppStore((s) => s.loadProjectData);
+  const currentMemberRole = useAppStore((s) => s.currentMemberRole);
   const { isAuthenticated, user } = useAuth();
   const pathname = usePathname();
   const [addingProject, setAddingProject] = useState(false);
@@ -137,7 +139,7 @@ export function Sidebar() {
                       onChange={(e) => setNewProjectName(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
-                          addProject(newProjectName);
+                          void addProject(newProjectName);
                           setNewProjectName("");
                           setAddingProject(false);
                         }
@@ -153,7 +155,7 @@ export function Sidebar() {
                     <div className="flex items-center gap-2 mt-2">
                       <button
                         onClick={() => {
-                          addProject(newProjectName);
+                          void addProject(newProjectName);
                           setNewProjectName("");
                           setAddingProject(false);
                         }}
@@ -184,7 +186,12 @@ export function Sidebar() {
                     <Link
                       key={project.id}
                       href="/board"
-                      onClick={() => setActiveProject(project.id)}
+                      onClick={() => {
+                        setActiveProject(project.id);
+                        if (user?.id) {
+                          void loadProjectData(project.id, user.id);
+                        }
+                      }}
                       className={cn(
                         "flex items-center gap-2.5 px-2.5 py-2 rounded-xl transition-all group",
                         isActive
@@ -201,17 +208,21 @@ export function Sidebar() {
                       {isActive && (
                         <Circle className="w-1.5 h-1.5 fill-brand-500 text-brand-500 shrink-0" />
                       )}
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          deleteProject(project.id);
-                        }}
-                        className="w-5 h-5 rounded-md hover:bg-white/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-                        aria-label={`Delete ${project.name}`}
-                      >
-                        <X className="w-3 h-3 text-slate-400" />
-                      </button>
+                      {currentMemberRole === "owner" && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (user?.id) {
+                              void deleteProject(project.id, user.id);
+                            }
+                          }}
+                          className="w-5 h-5 rounded-md hover:bg-white/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                          aria-label={`Delete ${project.name}`}
+                        >
+                          <X className="w-3 h-3 text-slate-400" />
+                        </button>
+                      )}
                     </Link>
                   );
                 })}

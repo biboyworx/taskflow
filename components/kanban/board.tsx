@@ -25,7 +25,9 @@ export function Board() {
   const moveTask = useAppStore((s) => s.moveTask);
   const columns = useAppStore((s) => s.columns);
   const addColumn = useAppStore((s) => s.addColumn);
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
   const preferences = useAppStore((s) => s.preferences);
+  const currentMemberRole = useAppStore((s) => s.currentMemberRole);
   const { user } = useAuth();
 
   const actor = useMemo(() => {
@@ -98,14 +100,14 @@ export function Board() {
     // Over a column
     const overColumn = columns.find((c) => c.id === overId);
     if (overColumn && activeTask.status !== overColumn.id) {
-      moveTask(activeId, overColumn.id, actor ?? undefined);
+      void moveTask(activeId, overColumn.id, actor ?? undefined);
       return;
     }
 
     // Over another task
     const overTask = tasks.find((t) => t.id === overId);
     if (overTask && overTask.status !== activeTask.status) {
-      moveTask(activeId, overTask.status, actor ?? undefined);
+      void moveTask(activeId, overTask.status, actor ?? undefined);
     }
   };
 
@@ -119,7 +121,7 @@ export function Board() {
 
     const overTask = tasks.find((t) => t.id === overId);
     if (overTask) {
-      reorderTasks(activeId, overId, overTask.status);
+      void reorderTasks(activeId, overId, overTask.status);
     }
   };
 
@@ -155,57 +157,62 @@ export function Board() {
             </div>
           ))}
 
-          {/* Add column */}
-          <div className="shrink-0 w-72">
-            {addingColumn ? (
-              <div className="bg-white/85 backdrop-blur-xl rounded-2xl border border-white/70 shadow-card p-3 animate-scale-in">
-                <input
-                  autoFocus
-                  value={newColumnTitle}
-                  onChange={(e) => setNewColumnTitle(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      addColumn(newColumnTitle);
-                      setNewColumnTitle("");
-                      setAddingColumn(false);
-                    }
-                    if (e.key === "Escape") {
-                      setNewColumnTitle("");
-                      setAddingColumn(false);
-                    }
-                  }}
-                  placeholder="Column name"
-                  className="w-full text-sm text-slate-800 placeholder:text-slate-400 bg-white/70 border border-white/70 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400/20"
-                />
-                <div className="flex items-center gap-2 mt-2.5">
-                  <button
-                    onClick={() => {
-                      addColumn(newColumnTitle);
-                      setNewColumnTitle("");
-                      setAddingColumn(false);
+          {currentMemberRole === "owner" && (
+            <div className="shrink-0 w-72">
+              {addingColumn ? (
+                <div className="bg-white/85 backdrop-blur-xl rounded-2xl border border-white/70 shadow-card p-3 animate-scale-in">
+                  <input
+                    autoFocus
+                    value={newColumnTitle}
+                    onChange={(e) => setNewColumnTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        if (activeProjectId) {
+                          void addColumn(newColumnTitle, activeProjectId);
+                        }
+                        setNewColumnTitle("");
+                        setAddingColumn(false);
+                      }
+                      if (e.key === "Escape") {
+                        setNewColumnTitle("");
+                        setAddingColumn(false);
+                      }
                     }}
-                    className="h-7 px-3 rounded-lg bg-brand-500 text-white text-xs font-medium hover:bg-brand-600 transition-colors"
-                  >
-                    Add column
-                  </button>
-                  <button
-                    onClick={() => { setNewColumnTitle(""); setAddingColumn(false); }}
-                    className="w-7 h-7 rounded-lg hover:bg-white/70 flex items-center justify-center transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5 text-slate-400 rotate-45" />
-                  </button>
+                    placeholder="Column name"
+                    className="w-full text-sm text-slate-800 placeholder:text-slate-400 bg-white/70 border border-white/70 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400/20"
+                  />
+                  <div className="flex items-center gap-2 mt-2.5">
+                    <button
+                      onClick={() => {
+                        if (activeProjectId) {
+                          void addColumn(newColumnTitle, activeProjectId);
+                        }
+                        setNewColumnTitle("");
+                        setAddingColumn(false);
+                      }}
+                      className="h-7 px-3 rounded-lg bg-brand-500 text-white text-xs font-medium hover:bg-brand-600 transition-colors"
+                    >
+                      Add column
+                    </button>
+                    <button
+                      onClick={() => { setNewColumnTitle(""); setAddingColumn(false); }}
+                      className="w-7 h-7 rounded-lg hover:bg-white/70 flex items-center justify-center transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-slate-400 rotate-45" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => setAddingColumn(true)}
-                className="w-full h-10 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-white/80 text-sm text-slate-500 hover:border-brand-300 hover:text-brand-600 hover:bg-white/70 transition-all group"
-              >
-                <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
-                Add column
-              </button>
-            )}
-          </div>
+              ) : (
+                <button
+                  onClick={() => setAddingColumn(true)}
+                  className="w-full h-10 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-white/80 text-sm text-slate-500 hover:border-brand-300 hover:text-brand-600 hover:bg-white/70 transition-all group"
+                >
+                  <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
+                  Add column
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)" }}>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import { QueryProvider } from "@/components/query-provider";
 import { AuthProvider } from "@/components/auth-provider";
+import { DataProvider } from "@/components/data-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import { Toaster } from "sonner";
@@ -28,7 +29,10 @@ export default function RootLayout({
         <QueryProvider>
           <Toaster />
           <ThemeProvider />
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <DataProvider />
+            {children}
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>

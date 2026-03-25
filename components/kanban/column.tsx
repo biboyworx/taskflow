@@ -7,8 +7,6 @@ import { cn } from "@/lib/utils";
 import { Task, ColumnId } from "@/lib/types";
 import { TaskCard } from "./task-card";
 import { useAppStore } from "@/lib/store";
-import { MEMBERS } from "@/lib/mock-data";
-import { TAGS } from "@/lib/mock-data";
 import { useAuth } from "@/components/auth-provider";
 
 interface ColumnProps {
@@ -24,6 +22,7 @@ export function Column({ id, title, color, dotColor, headerBg, tasks }: ColumnPr
   const [addingTask, setAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const addTask = useAppStore((s) => s.addTask);
+  const members = useAppStore((s) => s.members);
   const { user } = useAuth();
 
   const actor = useMemo(() => {
@@ -59,12 +58,12 @@ export function Column({ id, title, color, dotColor, headerBg, tasks }: ColumnPr
 
   const handleAddTask = () => {
     if (!newTaskTitle.trim()) return;
-    addTask({
+    void addTask({
       title: newTaskTitle.trim(),
       description: "",
       status: id,
       priority: "medium",
-      assignees: actor ? [actor] : [MEMBERS[0]],
+      assignees: actor ? [actor] : members.slice(0, 1),
       dueDate: null,
       checklist: [],
       comments: [],

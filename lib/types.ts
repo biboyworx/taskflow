@@ -19,7 +19,7 @@ export interface ChecklistItem {
 
 export interface Comment {
   id: string;
-  author: Member;
+  author: Member | null;
   text: string;
   createdAt: string;
 }
@@ -29,6 +29,7 @@ export interface Attachment {
   name: string;
   size: string;
   type: string;
+  url: string;
   uploadedAt: string;
 }
 
@@ -68,15 +69,28 @@ export interface Project {
   description: string;
   color: string;
   emoji: string;
-  members: Member[];
-  tasks: Task[];
-  activities: ActivityItem[];
+  members?: Member[];
+  tasks?: Task[];
+  activities?: ActivityItem[];
 }
 
 export interface ActivityItem {
   id: string;
-  user: Member;
+  user: Member | null;
   action: string;
   target: string;
   createdAt: string;
+}
+
+export interface Invite {
+  id: string;
+  projectId: string;
+  email: string;
+  invitedBy: string;
+  role: string;
+  status: string;
+  createdAt: string;
+  projectName?: string;
+  projectEmoji?: string;
+  projectColor?: string;
 }

@@ -1,6 +1,6 @@
 {
-  "/page": "app/page.js",
+  "/board/page": "app/board/page.js",
+  "/settings/page": "app/settings/page.js",
   "/dashboard/page": "app/dashboard/page.js",
-  "/notifications/page": "app/notifications/page.js",
-  "/board/page": "app/board/page.js"
+  "/notifications/page": "app/notifications/page.js"
 }
