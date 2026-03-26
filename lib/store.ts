@@ -30,6 +30,8 @@ interface AppState {
 
   // Actions
   setSelectedTask: (task: Task | null) => void;
+  setProjects: (projects: Project[], activeProjectId?: string) => void;
+  setActiveProjectId: (projectId: string) => void;
   setActiveProject: (projectId: string) => void;
   addProject: (name: string) => void;
   deleteProject: (projectId: string) => void;
@@ -64,7 +66,7 @@ export const useAppStore = create<AppState>()(
       columns: DEFAULT_COLUMNS,
       projects: [
         {
-          id: "proj-1",
+          id: "b7dadbea-6c00-4233-a41a-ce27e0a01fad",
           name: "Taskflow v2.0",
           description: "Next generation of our flagship product",
           color: "#14b8a6",
@@ -74,7 +76,7 @@ export const useAppStore = create<AppState>()(
           activities: ACTIVITY_FEED,
         },
       ],
-      activeProjectId: "proj-1",
+      activeProjectId: "b7dadbea-6c00-4233-a41a-ce27e0a01fad",
       authUser: null,
       isAuthenticated: false,
       sessionStartedAt: null,
@@ -95,6 +97,20 @@ export const useAppStore = create<AppState>()(
       taskCounter: DEFAULT_TASK_COUNTER,
 
       setSelectedTask: (task) => set({ selectedTask: task }),
+
+      setProjects: (projects, nextActiveId) =>
+        set((state) => {
+          const activeId = nextActiveId
+            ?? (projects.find((p) => p.id === state.activeProjectId)?.id
+            ?? projects[0]?.id
+            ?? "");
+          return {
+            projects,
+            activeProjectId: activeId || state.activeProjectId,
+          };
+        }),
+
+      setActiveProjectId: (projectId) => set({ activeProjectId: projectId }),
 
       signIn: (email, password) => {
         const normalizedEmail = email.trim().toLowerCase();

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -19,6 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/components/auth-provider";
+import { supabase } from "@/lib/supabase";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -34,12 +35,87 @@ export function Sidebar() {
   const projects = useAppStore((s) => s.projects);
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const setActiveProject = useAppStore((s) => s.setActiveProject);
-  const addProject = useAppStore((s) => s.addProject);
-  const deleteProject = useAppStore((s) => s.deleteProject);
+  const setActiveProjectId = useAppStore((s) => s.setActiveProjectId);
+  const setProjects = useAppStore((s) => s.setProjects);
   const { isAuthenticated, user } = useAuth();
   const pathname = usePathname();
   const [addingProject, setAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+
+  const loadProjects = useCallback(async () => {
+    if (!isAuthenticated || !user) {
+      setProjects([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("projects")
+      .select("id, name, description, color, emoji")
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      return;
+    }
+
+    const mapped = (data ?? []).map((project) => ({
+      id: project.id as string,
+      name: project.name as string,
+      description: (project.description as string) ?? "",
+      color: (project.color as string) ?? "#14b8a6",
+      emoji: (project.emoji as string) ?? "📁",
+      members: [],
+      tasks: [],
+      activities: [],
+    }));
+
+    setProjects(mapped, activeProjectId);
+    if (!activeProjectId && mapped[0]?.id) {
+      setActiveProjectId(mapped[0].id);
+    }
+  }, [activeProjectId, isAuthenticated, setActiveProjectId, setProjects, user]);
+
+  useEffect(() => {
+    void loadProjects();
+  }, [loadProjects]);
+
+  const handleCreateProject = useCallback(async () => {
+    if (!isAuthenticated || !user) return;
+    const trimmedName = newProjectName.trim();
+    if (!trimmedName) return;
+
+    const { data, error } = await supabase
+      .from("projects")
+      .insert({
+        name: trimmedName,
+        description: "",
+        color: "#14b8a6",
+        emoji: "📁",
+        created_by: user.id,
+      })
+      .select("id, name, description, color, emoji")
+      .single();
+
+    if (error || !data) {
+      return;
+    }
+
+    await supabase.from("project_members").insert({
+      project_id: data.id,
+      user_id: user.id,
+      role: "owner",
+    });
+
+    setNewProjectName("");
+    setAddingProject(false);
+    await loadProjects();
+    setActiveProjectId(data.id as string);
+  }, [isAuthenticated, loadProjects, newProjectName, setActiveProjectId, user]);
+
+  const handleDeleteProject = useCallback(async (projectId: string) => {
+    if (!isAuthenticated) return;
+    await supabase.from("projects").delete().eq("id", projectId);
+    await loadProjects();
+  }, [isAuthenticated, loadProjects]);
 
   return (
     <aside
@@ -137,9 +213,7 @@ export function Sidebar() {
                       onChange={(e) => setNewProjectName(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
-                          addProject(newProjectName);
-                          setNewProjectName("");
-                          setAddingProject(false);
+                          void handleCreateProject();
                         }
                         if (e.key === "Escape") {
                           setNewProjectName("");
@@ -152,11 +226,7 @@ export function Sidebar() {
                     />
                     <div className="flex items-center gap-2 mt-2">
                       <button
-                        onClick={() => {
-                          addProject(newProjectName);
-                          setNewProjectName("");
-                          setAddingProject(false);
-                        }}
+                        onClick={() => void handleCreateProject()}
                         className="h-7 px-3 rounded-lg bg-brand-500 text-white text-xs font-medium hover:bg-brand-600 transition-colors"
                         disabled={!isAuthenticated}
                       >
@@ -205,7 +275,7 @@ export function Sidebar() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          deleteProject(project.id);
+                          void handleDeleteProject(project.id);
                         }}
                         className="w-5 h-5 rounded-md hover:bg-white/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                         aria-label={`Delete ${project.name}`}

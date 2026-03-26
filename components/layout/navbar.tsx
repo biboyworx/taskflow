@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 import { Priority } from "@/lib/types";
+import { supabase } from "@/lib/supabase";
 
 // backend
 import { useAuth } from "../auth-provider";
@@ -33,6 +34,34 @@ const PRIORITY_FILTERS: {
   { label: "Low", value: "low", color: "bg-slate-400" },
 ];
 
+const DEFAULT_MEMBER_COLOR = "#14b8a6";
+
+type ProjectMember = {
+  id: string;
+  name: string;
+  initials: string;
+  color: string;
+  avatarUrl: string | null;
+};
+
+type ProfileRow = {
+  full_name: string | null;
+  avatar_url: string | null;
+  color: string | null;
+  initials: string | null;
+};
+
+type ProjectMemberRow = {
+  user_id: string;
+  profiles: ProfileRow | ProfileRow[] | null;
+};
+
+const normalizeProfile = (
+  profiles: ProjectMemberRow["profiles"],
+): ProfileRow | null =>
+  Array.isArray(profiles) ? profiles[0] ?? null : profiles ?? null;
+
+
 export function Navbar() {
   const [showFilter, setShowFilter] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
@@ -48,6 +77,7 @@ export function Navbar() {
   const [authError, setAuthError] = useState("");
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isSignUpLoading, setIsSignUpLoading] = useState(false);
+  const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
   const searchQuery = useAppStore((s) => s.searchQuery);
   const filterPriority = useAppStore((s) => s.filterPriority);
   const setSearchQuery = useAppStore((s) => s.setSearchQuery);
@@ -93,6 +123,82 @@ export function Navbar() {
       toast.warning("Please login first");
     }
   }, [session, isLoading]);
+
+  const loadProjectMembers = useCallback(async () => {
+    if (!isAuthenticated || !activeProjectId) {
+      setProjectMembers([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("project_members")
+      .select(
+        "user_id, role, profiles:profiles(id, full_name, avatar_url, color, initials)",
+      )
+      .eq("project_id", activeProjectId);
+
+    if (error) {
+      return;
+    }
+
+    const rows = (data ?? []) as ProjectMemberRow[];
+    const mapped = rows.map((row) => {
+      const profile = normalizeProfile(row.profiles);
+      const name = profile?.full_name ?? "User";
+      const initials =
+        (profile?.initials ??
+          name
+            .split(/[\s._-]+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part[0]?.toUpperCase() ?? "")
+            .join("")) || "U";
+
+      return {
+        id: row.user_id as string,
+        name,
+        initials,
+        color: profile?.color ?? DEFAULT_MEMBER_COLOR,
+        avatarUrl: profile?.avatar_url ?? null,
+      };
+    });
+
+    setProjectMembers(mapped);
+  }, [activeProjectId, isAuthenticated]);
+
+  useEffect(() => {
+    void loadProjectMembers();
+  }, [loadProjectMembers]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !activeProjectId) return;
+    const channel = supabase
+      .channel(`project-members-${activeProjectId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "project_members",
+          filter: `project_id=eq.${activeProjectId}`,
+        },
+        () => {
+          void loadProjectMembers();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profiles" },
+        () => {
+          void loadProjectMembers();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [activeProjectId, isAuthenticated, loadProjectMembers]);
 
   // Handle Login
   const { mutate: login, isPending, isError, error } = useLogin();
@@ -299,7 +405,7 @@ export function Navbar() {
         {/* Members */}
         {isAuthenticated && (
           <div className="flex items-center -space-x-2">
-            {(activeProject?.members ?? []).slice(0, 4).map((m) => (
+            {projectMembers.slice(0, 4).map((m) => (
               <div
                 key={m.id}
                 title={m.name}
@@ -309,9 +415,9 @@ export function Navbar() {
                 {m.initials}
               </div>
             ))}
-            {(activeProject?.members?.length ?? 0) > 4 && (
+            {projectMembers.length > 4 && (
               <div className="w-7 h-7 rounded-full bg-surface-100 flex items-center justify-center text-[11px] font-bold text-slate-500 ring-2 ring-white">
-                +{(activeProject?.members.length ?? 0) - 4}
+                +{projectMembers.length - 4}
               </div>
             )}
           </div>

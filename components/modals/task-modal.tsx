@@ -1,20 +1,41 @@
 "use client";
-import React, { useMemo, useState, useRef, useEffect } from "react";
+import React, { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import {
   X, Calendar, Tag as TagIcon, Users, Paperclip,
   CheckSquare, MessageSquare, Plus, Check, Trash2,
   Edit2, ChevronDown, Flag, AlignLeft, Hash
 } from "lucide-react";
 import { cn, PRIORITY_CONFIG, timeAgo, formatDate } from "@/lib/utils";
-import { Task, Priority, TaskStatus } from "@/lib/types";
+import { Task, Priority, TaskStatus, Member } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
 import { MEMBERS, TAGS } from "@/lib/mock-data";
 import { useAuth } from "@/components/auth-provider";
+import { supabase } from "@/lib/supabase";
 
 interface TaskModalProps {
   task: Task;
   onClose: () => void;
 }
+
+type ProfileRow = {
+  full_name: string | null;
+  avatar_url: string | null;
+  color: string | null;
+  initials: string | null;
+};
+
+type ProjectMemberRow = {
+  user_id: string;
+  role: string | null;
+  profiles: ProfileRow | ProfileRow[] | null;
+};
+
+const DEFAULT_MEMBER_COLOR = "#14b8a6";
+
+const normalizeProfile = (
+  profiles: ProjectMemberRow["profiles"],
+): ProfileRow | null =>
+  Array.isArray(profiles) ? profiles[0] ?? null : profiles ?? null;
 
 export function TaskModal({ task, onClose }: TaskModalProps) {
   const updateTask = useAppStore((s) => s.updateTask);
@@ -23,7 +44,11 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
   const addChecklistItem = useAppStore((s) => s.addChecklistItem);
   const deleteTask = useAppStore((s) => s.deleteTask);
   const columns = useAppStore((s) => s.columns);
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
+  const [projectMembers, setProjectMembers] = useState<Member[]>([]);
+  const [membersError, setMembersError] = useState<string | null>(null);
+  const [membersLoading, setMembersLoading] = useState(false);
 
   const actor = useMemo(() => {
     if (!user) return null;
@@ -53,6 +78,61 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
       initials,
     };
   }, [user]);
+
+  const loadProjectMembers = useCallback(async () => {
+    if (!isAuthenticated || !activeProjectId) {
+      setProjectMembers([]);
+      setMembersError(null);
+      return;
+    }
+
+    setMembersLoading(true);
+    setMembersError(null);
+
+    const { data, error } = await supabase
+      .from("project_members")
+      .select(
+        "user_id, role, profiles:profiles(full_name, avatar_url, color, initials)",
+      )
+      .eq("project_id", activeProjectId);
+
+    if (error) {
+      setMembersError(error.message);
+      setProjectMembers([]);
+      setMembersLoading(false);
+      return;
+    }
+
+    const rows = (data ?? []) as ProjectMemberRow[];
+    const mapped = rows.map((row) => {
+      const profile = normalizeProfile(row.profiles);
+      const name = profile?.full_name ?? "User";
+      const initials =
+        (profile?.initials ??
+          name
+            .split(/[\s._-]+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part[0]?.toUpperCase() ?? "")
+            .join("")) || "U";
+
+      return {
+        id: row.user_id,
+        name,
+        avatar: profile?.avatar_url ?? "",
+        color: profile?.color ?? DEFAULT_MEMBER_COLOR,
+        role: row.role ?? "Member",
+        initials,
+      };
+    });
+
+    setProjectMembers(mapped);
+    setMembersLoading(false);
+  }, [activeProjectId, isAuthenticated]);
+
+  useEffect(() => {
+    void loadProjectMembers();
+  }, [loadProjectMembers]);
 
   const updateTaskWithActor = (updates: Partial<Task>) =>
     updateTask(task.id, updates, actor ?? undefined);
@@ -105,9 +185,12 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
     setAddingCheck(false);
   };
 
+  const availableMembers = isAuthenticated ? projectMembers : MEMBERS;
+
   const handleToggleAssignee = (memberId: string) => {
     const isAssigned = task.assignees.some((a) => a.id === memberId);
-    const member = MEMBERS.find((m) => m.id === memberId)!;
+    const member = availableMembers.find((m) => m.id === memberId);
+    if (!member) return;
     const newAssignees = isAssigned
       ? task.assignees.filter((a) => a.id !== memberId)
       : [...task.assignees, member];
@@ -278,7 +361,22 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
                     </button>
                     {showMemberPicker && (
                       <div className="absolute top-6 right-0 z-10 bg-white/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 p-2 w-52 animate-scale-in">
-                        {MEMBERS.map((m) => {
+                        {membersLoading && (
+                          <div className="px-2.5 py-2 text-xs text-slate-400">
+                            Loading members...
+                          </div>
+                        )}
+                        {!membersLoading && membersError && (
+                          <div className="px-2.5 py-2 text-xs text-red-500">
+                            {membersError}
+                          </div>
+                        )}
+                        {!membersLoading && !membersError && availableMembers.length === 0 && (
+                          <div className="px-2.5 py-2 text-xs text-slate-400">
+                            No project members found.
+                          </div>
+                        )}
+                        {!membersLoading && !membersError && availableMembers.map((m) => {
                           const assigned = task.assignees.some((a) => a.id === m.id);
                           return (
                             <button

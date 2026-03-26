@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   type ReactNode,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -27,6 +28,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const { data: session, isLoading, isFetching } = useUser();
+  const hasAcceptedInvitesRef = useRef<string | null>(null);
 
   // Listen for Supabase auth events and keep the cache in sync
   useEffect(() => {
@@ -40,6 +42,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
     };
   }, [queryClient]);
+
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId || isLoading || isFetching) return;
+    if (hasAcceptedInvitesRef.current === userId) return;
+    hasAcceptedInvitesRef.current = userId;
+    fetch("/api/invite/accept", { method: "POST" }).catch(() => {});
+  }, [session?.user?.id, isLoading, isFetching]);
 
 
   const value = useMemo<AuthContextValue>(
