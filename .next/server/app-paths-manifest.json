@@ -1,6 +1,10 @@
 {
+<<<<<<< HEAD
   "/board/page": "app/board/page.js",
   "/settings/page": "app/settings/page.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/notifications/page": "app/notifications/page.js"
+=======
+  "/board/page": "app/board/page.js"
+>>>>>>> 5859d04711e756f7022fbb898d7d3e7e9d40331a
 }

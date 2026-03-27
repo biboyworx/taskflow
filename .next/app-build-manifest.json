@@ -16,6 +16,7 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
+<<<<<<< HEAD
     "/notifications/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -31,6 +32,8 @@
       "static/chunks/main-app.js",
       "static/chunks/app/page.js"
     ],
+=======
+>>>>>>> 5859d04711e756f7022fbb898d7d3e7e9d40331a
     "/board/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -40,6 +43,7 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/board/layout.js"
+<<<<<<< HEAD
     ],
     "/agenda/page": [
       "static/chunks/webpack.js",
@@ -60,6 +64,8 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/layout.js"
+=======
+>>>>>>> 5859d04711e756f7022fbb898d7d3e7e9d40331a
     ]
   }
 }

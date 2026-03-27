@@ -43,6 +43,7 @@ export function Sidebar() {
   const [addingProject, setAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
 
+
   return (
     <aside
       className={cn(
