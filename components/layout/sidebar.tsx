@@ -24,7 +24,14 @@ import { useAuth } from "@/components/auth-provider";
 import { fetchUserProfile } from "@/lib/data";
 import { toast } from "sonner";
 
-const NAV_ITEMS = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number | string;
+};
+
+const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/agenda", label: "Agenda", icon: Calendar },
   { href: "/board", label: "Projects", icon: FolderKanban },
@@ -257,7 +264,7 @@ export function Sidebar() {
 
                       {/* Project Options Menu */}
                       {currentMemberRole === "owner" && menuOpen && (
-                        <div 
+                        <div
                           className="absolute top-full right-0 mt-1 z-50 bg-white/95 theme-dark:bg-slate-800/95 backdrop-blur-xl rounded-lg shadow-lg border border-white/70 theme-dark:border-slate-700/70 py-1 min-w-[180px]"
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -300,7 +307,11 @@ export function Sidebar() {
               style={{ backgroundColor: "#14b8a6" }}
             >
               {userAvatarUrl ? (
-                <img src={userAvatarUrl} alt="User avatar" className="w-full h-full object-cover" />
+                <img
+                  src={userAvatarUrl}
+                  alt="User avatar"
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 (user?.user_metadata?.full_name ?? user?.email ?? "")
                   .split("@")[0]
