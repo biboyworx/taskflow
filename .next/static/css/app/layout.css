@@ -556,6 +556,9 @@ video {
 .top-8 {
   top: 2rem;
 }
+.top-full {
+  top: 100%;
+}
 .z-10 {
   z-index: 10;
 }
@@ -632,6 +635,9 @@ video {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+.block {
+  display: block;
 }
 .inline {
   display: inline;
@@ -714,6 +720,9 @@ video {
 .h-screen {
   height: 100vh;
 }
+.max-h-80 {
+  max-height: 20rem;
+}
 .min-h-0 {
   min-height: 0px;
 }
@@ -780,6 +789,9 @@ video {
 .w-px {
   width: 1px;
 }
+.w-56 {
+  width: 14rem;
+}
 .min-w-0 {
   min-width: 0px;
 }
@@ -798,6 +810,12 @@ video {
 .min-w-\[22px\] {
   min-width: 22px;
 }
+.min-w-\[240px\] {
+  min-width: 240px;
+}
+.min-w-\[320px\] {
+  min-width: 320px;
+}
 .max-w-2xl {
   max-width: 42rem;
 }
@@ -806,6 +824,9 @@ video {
 }
 .max-w-5xl {
   max-width: 64rem;
+}
+.max-w-6xl {
+  max-width: 72rem;
 }
 .max-w-sm {
   max-width: 24rem;
@@ -1182,6 +1203,10 @@ video {
 .border-white\/80 {
   border-color: rgb(255 255 255 / 0.8);
 }
+.border-slate-700 {
+  --tw-border-opacity: 1;
+  border-color: rgb(51 65 85 / var(--tw-border-opacity, 1));
+}
 .bg-amber-100 {
   --tw-bg-opacity: 1;
   background-color: rgb(254 243 199 / var(--tw-bg-opacity, 1));
@@ -1189,6 +1214,9 @@ video {
 .bg-amber-50 {
   --tw-bg-opacity: 1;
   background-color: rgb(255 251 235 / var(--tw-bg-opacity, 1));
+}
+.bg-amber-50\/40 {
+  background-color: rgb(255 251 235 / 0.4);
 }
 .bg-amber-500 {
   --tw-bg-opacity: 1;
@@ -1230,9 +1258,16 @@ video {
   --tw-bg-opacity: 1;
   background-color: rgb(254 242 242 / var(--tw-bg-opacity, 1));
 }
+.bg-red-50\/40 {
+  background-color: rgb(254 242 242 / 0.4);
+}
 .bg-red-500 {
   --tw-bg-opacity: 1;
   background-color: rgb(239 68 68 / var(--tw-bg-opacity, 1));
+}
+.bg-slate-100 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(241 245 249 / var(--tw-bg-opacity, 1));
 }
 .bg-slate-200 {
   --tw-bg-opacity: 1;
@@ -1281,6 +1316,12 @@ video {
 .bg-white\/90 {
   background-color: rgb(255 255 255 / 0.9);
 }
+.bg-white\/95 {
+  background-color: rgb(255 255 255 / 0.95);
+}
+.bg-white\/50 {
+  background-color: rgb(255 255 255 / 0.5);
+}
 .bg-gradient-to-br {
   background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
 }
@@ -1297,6 +1338,10 @@ video {
 }
 .fill-white {
   fill: #fff;
+}
+.object-cover {
+  -o-object-fit: cover;
+     object-fit: cover;
 }
 .p-1\.5 {
   padding: 0.375rem;
@@ -1423,6 +1468,12 @@ video {
 }
 .pt-5 {
   padding-top: 1.25rem;
+}
+.pt-1 {
+  padding-top: 0.25rem;
+}
+.pt-2 {
+  padding-top: 0.5rem;
 }
 .text-left {
   text-align: left;
@@ -1707,6 +1758,10 @@ video {
   --navbar-height: 60px;
   --body-bg: linear-gradient(135deg, #f6fbff 0%, #f4fbf7 55%, #fff6f2 100%);
   --body-text: #0f172a;
+  --body-text-secondary: #64748b;
+  --navbar-bg: rgba(255, 255, 255, 0.7);
+  --navbar-text: #0f172a;
+  --navbar-text-secondary: #64748b;
   --shell-bg: radial-gradient(circle at 10% 10%, rgba(45, 212, 191, 0.18), transparent 45%),
     radial-gradient(circle at 90% 20%, rgba(251, 191, 36, 0.12), transparent 40%),
     radial-gradient(circle at 70% 90%, rgba(248, 113, 113, 0.12), transparent 45%),
@@ -1720,6 +1775,10 @@ video {
 .theme-mist {
   --body-bg: linear-gradient(135deg, #f6fbff 0%, #f4fbf7 55%, #fff6f2 100%);
   --body-text: #0f172a;
+  --body-text-secondary: #64748b;
+  --navbar-bg: rgba(255, 255, 255, 0.7);
+  --navbar-text: #0f172a;
+  --navbar-text-secondary: #64748b;
   --shell-bg: radial-gradient(circle at 10% 10%, rgba(45, 212, 191, 0.18), transparent 45%),
     radial-gradient(circle at 90% 20%, rgba(251, 191, 36, 0.12), transparent 40%),
     radial-gradient(circle at 70% 90%, rgba(248, 113, 113, 0.12), transparent 45%),
@@ -1733,6 +1792,10 @@ video {
 .theme-linen {
   --body-bg: linear-gradient(135deg, #fff7ee 0%, #f6f1e8 55%, #f3f8f5 100%);
   --body-text: #1f2937;
+  --body-text-secondary: #6b7280;
+  --navbar-bg: rgba(255, 255, 255, 0.7);
+  --navbar-text: #1f2937;
+  --navbar-text-secondary: #6b7280;
   --shell-bg: radial-gradient(circle at 12% 12%, rgba(251, 146, 60, 0.16), transparent 48%),
     radial-gradient(circle at 88% 18%, rgba(45, 212, 191, 0.12), transparent 42%),
     radial-gradient(circle at 70% 85%, rgba(168, 85, 247, 0.08), transparent 45%),
@@ -1746,6 +1809,10 @@ video {
 .theme-dark {
   --body-bg: linear-gradient(135deg, #0b1220 0%, #111827 55%, #0f172a 100%);
   --body-text: #e2e8f0;
+  --body-text-secondary: #cbd5e1;
+  --navbar-bg: rgba(15, 23, 42, 0.7);
+  --navbar-text: #e2e8f0;
+  --navbar-text-secondary: #cbd5e1;
   --shell-bg: radial-gradient(circle at 15% 15%, rgba(45, 212, 191, 0.16), transparent 45%),
     radial-gradient(circle at 85% 15%, rgba(96, 165, 250, 0.18), transparent 40%),
     radial-gradient(circle at 70% 85%, rgba(248, 113, 113, 0.14), transparent 45%),
@@ -1982,12 +2049,21 @@ body {
   --tw-ring-color: rgb(52 211 191 / 0.3);
 }
 
+.focus\:ring-brand-500:focus {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(20 184 166 / var(--tw-ring-opacity, 1));
+}
+
 .active\:cursor-grabbing:active {
   cursor: grabbing;
 }
 
 .disabled\:cursor-not-allowed:disabled {
   cursor: not-allowed;
+}
+
+.disabled\:opacity-50:disabled {
+  opacity: 0.5;
 }
 
 .disabled\:opacity-60:disabled {

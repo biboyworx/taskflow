@@ -6,9 +6,11 @@ import {
   Edit2, ChevronDown, Flag, AlignLeft, Hash
 } from "lucide-react";
 import { cn, PRIORITY_CONFIG, timeAgo, formatDate } from "@/lib/utils";
-import { Task, Priority, TaskStatus } from "@/lib/types";
+import { Task, Priority, TaskStatus, Attachment } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/components/auth-provider";
+import { uploadTaskAttachment, deleteAttachment } from "@/lib/data";
+import { toast } from "sonner";
 
 interface TaskModalProps {
   task: Task;
@@ -21,13 +23,15 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
   const toggleChecklistItem = useAppStore((s) => s.toggleChecklistItem);
   const addChecklistItem = useAppStore((s) => s.addChecklistItem);
   const deleteTask = useAppStore((s) => s.deleteTask);
+  const createTag = useAppStore((s) => s.createTag);
   const columns = useAppStore((s) => s.columns);
   const members = useAppStore((s) => s.members);
   const tags = useAppStore((s) => s.tags);
   const currentMemberRole = useAppStore((s) => s.currentMemberRole);
   const { user } = useAuth();
 
-  const canEditTask = currentMemberRole === "owner";
+  // Allow members to edit tasks they're working on
+  const canEditTask = currentMemberRole === "owner" || currentMemberRole === "member";
 
   const actor = useMemo(() => {
     if (!user) return null;
@@ -74,10 +78,15 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const [showPriorityPicker, setShowPriorityPicker] = useState(false);
   const [showTagPicker, setShowTagPicker] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [creatingTag, setCreatingTag] = useState(false);
+  const [newTagLabel, setNewTagLabel] = useState("");
+  const [newTagColor, setNewTagColor] = useState("#14b8a6");
 
   const titleRef = useRef<HTMLInputElement>(null);
   const commentRef = useRef<HTMLTextAreaElement>(null);
   const checkRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const priority = PRIORITY_CONFIG[task.priority];
   const completedItems = task.checklist.filter((i) => i.done).length;
@@ -134,7 +143,63 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
     updateTaskWithActor({ tags: newTags });
   };
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.currentTarget.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    try {
+      const newAttachments: Attachment[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const attachment = await uploadTaskAttachment(task.id, file);
+        newAttachments.push(attachment);
+      }
+
+      // Update task with new attachments
+      const updatedAttachments = [...task.attachments, ...newAttachments];
+      updateTaskWithActor({ attachments: updatedAttachments });
+      toast.success(`Uploaded ${newAttachments.length} file(s)`);
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast.error("Failed to upload file(s)");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    try {
+      await deleteAttachment(attachmentId);
+      const updatedAttachments = task.attachments.filter((a) => a.id !== attachmentId);
+      updateTaskWithActor({ attachments: updatedAttachments });
+      toast.success("Attachment deleted");
+    } catch (error) {
+      console.error("Delete failed:", error);
+      toast.error("Failed to delete attachment");
+    }
+  };
+
+  const handleCreateTag = async () => {
+    if (!newTagLabel.trim()) return;
+    try {
+      setCreatingTag(true);
+      await createTag(newTagLabel, newTagColor);
+      toast.success(`Tag "${newTagLabel}" created`);
+      setNewTagLabel("");
+      setNewTagColor("#14b8a6");
+    } catch (error) {
+      console.error("Tag creation failed:", error);
+      toast.error("Failed to create tag");
+    } finally {
+      setCreatingTag(false);
+    }
+  };
 
   return (
     <div
@@ -321,10 +386,14 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
                               className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg hover:bg-white/70 transition-colors"
                             >
                               <div
-                                className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                                className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 overflow-hidden"
                                 style={{ backgroundColor: m.color }}
                               >
-                                {m.initials}
+                                {m.avatar ? (
+                                  <img src={m.avatar} alt={m.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  m.initials
+                                )}
                               </div>
                               <div className="flex-1 text-left">
                                 <p className="text-sm font-medium text-slate-700">{m.name}</p>
@@ -346,10 +415,14 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
                     <div
                       key={a.id}
                       title={a.name}
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white overflow-hidden"
                       style={{ backgroundColor: a.color, boxShadow: "0 0 0 2px white" }}
                     >
-                      {a.initials}
+                      {a.avatar ? (
+                        <img src={a.avatar} alt={a.name} className="w-full h-full object-cover" />
+                      ) : (
+                        a.initials
+                      )}
                     </div>
                   ))}
                 </div>
@@ -375,7 +448,12 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
                     <Plus className="w-3 h-3 text-slate-400" />
                   </button>
                   {showTagPicker && canEditTask && (
-                    <div className="absolute top-6 right-0 z-10 bg-white/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 p-2 w-44 animate-scale-in">
+                    <div className="absolute top-6 right-0 z-10 bg-white/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 p-2 w-56 animate-scale-in max-h-80 overflow-y-auto">
+                      {tags.length === 0 && !creatingTag && (
+                        <div className="px-2.5 py-3 text-sm text-slate-500 text-center border-b border-white/70 mb-2">
+                          No tags yet
+                        </div>
+                      )}
                       {tags.map((tag) => {
                         const hasTag = task.tags.some((t) => t.id === tag.id);
                         return (
@@ -393,6 +471,66 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
                           </button>
                         );
                       })}
+                      {tags.length > 0 && !creatingTag && (
+                        <div className="border-t border-white/70 mt-2 pt-2" />
+                      )}
+                      {creatingTag ? (
+                        <div className="px-2.5 py-2 space-y-2">
+                          <input
+                            type="text"
+                            placeholder="Tag name"
+                            value={newTagLabel}
+                            onChange={(e) => setNewTagLabel(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleCreateTag();
+                            }}
+                            className="w-full px-2 py-1.5 text-sm border border-white/70 rounded bg-white/50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                            autoFocus
+                          />
+                          <div className="flex items-center gap-2">
+                            <div className="flex gap-1">
+                              {["#14b8a6", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6"].map((color) => (
+                                <button
+                                  key={color}
+                                  onClick={() => setNewTagColor(color)}
+                                  className={cn(
+                                    "w-5 h-5 rounded-full border-2 transition-all",
+                                    newTagColor === color ? "border-slate-700" : "border-transparent"
+                                  )}
+                                  style={{ backgroundColor: color }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex gap-1.5 pt-1">
+                            <button
+                              onClick={handleCreateTag}
+                              disabled={!newTagLabel.trim()}
+                              className="flex-1 px-2 py-1 text-xs bg-brand-500 text-white rounded hover:bg-brand-600 disabled:opacity-50 font-medium"
+                            >
+                              Create
+                            </button>
+                            <button
+                              onClick={() => {
+                                setCreatingTag(false);
+                                setNewTagLabel("");
+                                setNewTagColor("#14b8a6");
+                              }}
+                              className="flex-1 px-2 py-1 text-xs bg-white/70 text-slate-700 rounded hover:bg-white/90 font-medium"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setCreatingTag(true)}
+                          className="flex items-center gap-2 w-full px-2.5 py-2 rounded-lg hover:bg-white/70 transition-colors text-xs text-brand-500 font-medium"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Create Tag
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -547,17 +685,25 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
                 </div>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1 text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors"
+                  disabled={uploading}
+                  className="flex items-center gap-1 text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors disabled:opacity-50"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  Upload
+                  {uploading ? "Uploading..." : "Upload"}
                 </button>
-                <input ref={fileInputRef} type="file" className="hidden" />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  multiple
+                  onChange={handleFileUpload}
+                  disabled={uploading}
+                />
               </div>
 
               {task.attachments.length === 0 ? (
                 <div
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => !uploading && fileInputRef.current?.click()}
                   className="border-2 border-dashed border-white/70 rounded-xl p-4 text-center hover:border-brand-300 hover:bg-brand-50/30 transition-all cursor-pointer"
                 >
                   <Paperclip className="w-5 h-5 text-slate-300 mx-auto mb-1.5" />
@@ -571,9 +717,25 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
                         {att.type.slice(0, 3)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-700 truncate">{att.name}</p>
+                        <a
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-slate-700 hover:text-brand-500 truncate block"
+                        >
+                          {att.name}
+                        </a>
                         <p className="text-xs text-slate-400">{att.size} · {att.uploadedAt}</p>
                       </div>
+                      {canEditTask && (
+                        <button
+                          onClick={() => handleDeleteAttachment(att.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors shrink-0"
+                          title="Delete attachment"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -594,10 +756,14 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
                 {task.comments.map((comment) => (
                   <div key={comment.id} className="flex gap-3 animate-fade-in">
                     <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-0.5"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-0.5 overflow-hidden"
                       style={{ backgroundColor: comment.author?.color ?? "#94a3b8" }}
                     >
-                      {comment.author?.initials ?? "?"}
+                      {comment.author?.avatar ? (
+                        <img src={comment.author.avatar} alt={comment.author?.name ?? "Author"} className="w-full h-full object-cover" />
+                      ) : (
+                        comment.author?.initials ?? "?"
+                      )}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-baseline gap-2 mb-1">
@@ -617,10 +783,14 @@ export function TaskModal({ task, onClose }: TaskModalProps) {
               {/* Comment input */}
               <div className="flex gap-3">
                 <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-1"
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-1 overflow-hidden"
                   style={{ backgroundColor: actor?.color ?? "#14b8a6" }}
                 >
-                  {actor?.initials ?? "AR"}
+                  {actor?.avatar ? (
+                    <img src={actor.avatar} alt={actor?.name ?? "User"} className="w-full h-full object-cover" />
+                  ) : (
+                    actor?.initials ?? "AR"
+                  )}
                 </div>
                 <div className="flex-1">
                   <textarea

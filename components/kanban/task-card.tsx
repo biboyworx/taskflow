@@ -129,10 +129,14 @@ export function TaskCard({ task, overlay }: TaskCardProps) {
               <div
                 key={a.id}
                 title={a.name}
-                className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white ring-1.5 ring-white shrink-0"
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white ring-1.5 ring-white shrink-0 overflow-hidden"
                 style={{ backgroundColor: a.color, boxShadow: "0 0 0 1.5px white" }}
               >
-                {a.initials}
+                {a.avatar ? (
+                  <img src={a.avatar} alt={a.name} className="w-full h-full object-cover" />
+                ) : (
+                  a.initials
+                )}
               </div>
             ))}
           </div>

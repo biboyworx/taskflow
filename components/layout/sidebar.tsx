@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -15,16 +15,20 @@ import {
   Zap,
   Hash,
   Circle,
+  MoreVertical,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/components/auth-provider";
+import { fetchUserProfile } from "@/lib/data";
+import { toast } from "sonner";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/agenda", label: "Agenda", icon: Calendar },
   { href: "/board", label: "Projects", icon: FolderKanban },
-  { href: "/notifications", label: "Notifications", icon: Bell, badge: 3 },
+  { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -42,7 +46,32 @@ export function Sidebar() {
   const pathname = usePathname();
   const [addingProject, setAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+  const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
+  const [openProjectMenu, setOpenProjectMenu] = useState<string | null>(null);
 
+  // Fetch user avatar
+  useEffect(() => {
+    if (!user?.id) {
+      setUserAvatarUrl(null);
+      return;
+    }
+
+    const fetchUserAvatar = async () => {
+      try {
+        const profile = await fetchUserProfile(user.id);
+        setUserAvatarUrl(profile.avatar_url || null);
+      } catch (error) {
+        console.error("Failed to fetch user avatar:", error);
+      }
+    };
+
+    fetchUserAvatar();
+  }, [user?.id]);
+
+  // Close project menu when pathname changes
+  useEffect(() => {
+    setOpenProjectMenu(null);
+  }, [pathname]);
 
   return (
     <aside
@@ -50,6 +79,7 @@ export function Sidebar() {
         "sidebar-transition flex flex-col h-full bg-white/60 backdrop-blur-xl border-r border-white/60 shadow-lg relative z-20 shrink-0",
         collapsed ? "w-16" : "w-64",
       )}
+      onClick={() => setOpenProjectMenu(null)}
     >
       {/* Logo */}
       <div
@@ -183,48 +213,72 @@ export function Sidebar() {
               {isAuthenticated &&
                 projects.map((project) => {
                   const isActive = project.id === activeProjectId;
+                  const menuOpen = openProjectMenu === project.id;
                   return (
-                    <Link
-                      key={project.id}
-                      href="/board"
-                      onClick={() => {
-                        setActiveProject(project.id);
-                        if (user?.id) {
-                          void loadProjectData(project.id, user.id);
-                        }
-                      }}
-                      className={cn(
-                        "flex items-center gap-2.5 px-2.5 py-2 rounded-xl transition-all group",
-                        isActive
-                          ? "bg-white/85 text-slate-900 shadow-sm"
-                          : "text-slate-500 hover:text-slate-800 hover:bg-white/70",
-                      )}
-                    >
-                      <span className="text-base leading-none">
-                        {project.emoji}
-                      </span>
-                      <span className="text-sm font-medium truncate flex-1">
-                        {project.name}
-                      </span>
-                      {isActive && (
-                        <Circle className="w-1.5 h-1.5 fill-brand-500 text-brand-500 shrink-0" />
-                      )}
-                      {currentMemberRole === "owner" && (
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (user?.id) {
-                              void deleteProject(project.id, user.id);
-                            }
-                          }}
-                          className="w-5 h-5 rounded-md hover:bg-white/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-                          aria-label={`Delete ${project.name}`}
+                    <div key={project.id} className="relative">
+                      <Link
+                        href="/board"
+                        onClick={() => {
+                          setActiveProject(project.id);
+                          if (user?.id) {
+                            void loadProjectData(project.id, user.id);
+                          }
+                        }}
+                        className={cn(
+                          "flex items-center gap-2.5 px-2.5 py-2 rounded-xl transition-all group",
+                          isActive
+                            ? "bg-white/85 text-slate-900 shadow-sm"
+                            : "text-slate-500 hover:text-slate-800 hover:bg-white/70",
+                        )}
+                      >
+                        <span className="text-base leading-none">
+                          {project.emoji}
+                        </span>
+                        <span className="text-sm font-medium truncate flex-1">
+                          {project.name}
+                        </span>
+                        {isActive && (
+                          <Circle className="w-1.5 h-1.5 fill-brand-500 text-brand-500 shrink-0" />
+                        )}
+                        {currentMemberRole === "owner" && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setOpenProjectMenu(menuOpen ? null : project.id);
+                            }}
+                            className="w-5 h-5 rounded-md hover:bg-white/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                            aria-label={`Project options for ${project.name}`}
+                          >
+                            <MoreVertical className="w-3 h-3 text-slate-400" />
+                          </button>
+                        )}
+                      </Link>
+
+                      {/* Project Options Menu */}
+                      {currentMemberRole === "owner" && menuOpen && (
+                        <div 
+                          className="absolute top-full right-0 mt-1 z-50 bg-white/95 theme-dark:bg-slate-800/95 backdrop-blur-xl rounded-lg shadow-lg border border-white/70 theme-dark:border-slate-700/70 py-1 min-w-[180px]"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <X className="w-3 h-3 text-slate-400" />
-                        </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (user?.id) {
+                                void deleteProject(project.id, user.id);
+                                setOpenProjectMenu(null);
+                                toast.success("Project deleted successfully");
+                              }
+                            }}
+                            className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 theme-dark:hover:bg-red-900/20 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Delete project
+                          </button>
+                        </div>
                       )}
-                    </Link>
+                    </div>
                   );
                 })}
             </div>
@@ -242,16 +296,20 @@ export function Sidebar() {
         {!collapsed && (
           <>
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 overflow-hidden"
               style={{ backgroundColor: "#14b8a6" }}
             >
-              {(user?.user_metadata?.full_name ?? user?.email ?? "")
-                .split("@")[0]
-                .split(/[._\s-]+/)
-                .filter(Boolean)
-                .slice(0, 2)
-                .map((part: string) => part[0]?.toUpperCase() ?? "")
-                .join("") || "U"}
+              {userAvatarUrl ? (
+                <img src={userAvatarUrl} alt="User avatar" className="w-full h-full object-cover" />
+              ) : (
+                (user?.user_metadata?.full_name ?? user?.email ?? "")
+                  .split("@")[0]
+                  .split(/[._\s-]+/)
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((part: string) => part[0]?.toUpperCase() ?? "")
+                  .join("") || "U"
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-slate-800 truncate">

@@ -90,10 +90,14 @@ export default function NotificationsPage() {
               )}
             >
               <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 overflow-hidden"
                 style={{ backgroundColor: item.user?.color ?? "#94a3b8" }}
               >
-                {item.user?.initials ?? "?"}
+                {item.user?.avatar ? (
+                  <img src={item.user.avatar} alt={item.user?.name ?? "User"} className="w-full h-full object-cover" />
+                ) : (
+                  item.user?.initials ?? "?"
+                )}
               </div>
               <div className="flex-1">
                 <p className="text-sm text-slate-700">

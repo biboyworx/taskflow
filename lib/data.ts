@@ -67,6 +67,22 @@ function mapProfileToMember(profile: ProfileRow): Member {
   };
 }
 
+export async function fetchUserProfile(userId: string) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .single();
+
+  if (error) throw error;
+  return data as ProfileRow;
+}
+
+export async function fetchMember(userId: string): Promise<Member> {
+  const profile = await fetchUserProfile(userId);
+  return mapProfileToMember(profile);
+}
+
 export async function fetchProjects(userId: string) {
   const { data, error } = await supabase
     .from("project_members")
@@ -79,6 +95,19 @@ export async function fetchProjects(userId: string) {
     .map((row: any) => row.project)
     .filter(Boolean);
   return projects as unknown as Project[];
+}
+
+export function searchProjects(projects: Project[], query: string): Project[] {
+  if (!query.trim()) {
+    return [];
+  }
+
+  const lowerQuery = query.toLowerCase();
+  return projects.filter(
+    (project) =>
+      project.name.toLowerCase().includes(lowerQuery) ||
+      (project.description && project.description.toLowerCase().includes(lowerQuery))
+  );
 }
 
 export async function createProject({
@@ -277,6 +306,81 @@ export async function fetchTasks(projectId: string) {
       order: row.order_index ?? 0,
     } as Task;
   });
+}
+
+export async function fetchUserAssignedTasks(userId: string) {
+  // Fetch all projects the user is a member of
+  const { data: projectData, error: projectError } = await supabase
+    .from("project_members")
+    .select("project_id")
+    .eq("user_id", userId);
+
+  if (projectError) throw projectError;
+
+  const projectIds = (projectData || []).map((row: any) => row.project_id);
+  if (projectIds.length === 0) return [];
+
+  // Fetch all tasks from those projects where the user is assigned
+  const { data, error } = await supabase
+    .from("tasks")
+    .select(
+      "*, assignees:task_assignees(user_id, profile:profiles(id, full_name, email, avatar_url, initials, color, role)), tags:task_tags(tag:tags(id, label, color)), checklist:checklist_items(*), comments:comments(id, text, created_at, author:profiles(id, full_name, email, avatar_url, initials, color, role)), attachments:attachments(*)"
+    )
+    .in("project_id", projectIds)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map((row) => {
+    const assignees = (row.assignees || [])
+      .map((assignee: { profile: ProfileRow | null }) => assignee.profile)
+      .filter(Boolean)
+      .map(mapProfileToMember);
+
+    const tags = (row.tags || [])
+      .map((t: { tag: Tag | null }) => t.tag)
+      .filter(Boolean) as Tag[];
+
+    const checklist = (row.checklist || []).map((item: ChecklistItem) => ({
+      id: item.id,
+      text: item.text,
+      done: item.done,
+    }));
+
+    const comments = (row.comments || []).map((comment: any) => ({
+      id: comment.id,
+      text: comment.text,
+      createdAt: comment.created_at,
+      author: comment.author ? mapProfileToMember(comment.author) : null,
+    }));
+
+    const attachments = (row.attachments || []).map((attachment: any) => ({
+      id: attachment.id,
+      name: attachment.name,
+      size: attachment.size,
+      type: attachment.type,
+      uploadedAt: attachment.uploaded_at,
+      url: attachment.url,
+    }));
+
+    return {
+      id: row.id,
+      title: row.title,
+      description: row.description || "",
+      status: row.column_id,
+      priority: PRIORITY_VALUES.includes(row.priority)
+        ? row.priority
+        : "medium",
+      assignees,
+      dueDate: row.due_date,
+      checklist,
+      comments,
+      attachments,
+      tags,
+      coverColor: row.cover_color || undefined,
+      order: row.order_index ?? 0,
+    } as Task;
+  }).filter(task => task.assignees.some(a => a.id === userId));
 }
 
 export async function fetchActivities(projectId: string) {
@@ -516,5 +620,106 @@ export async function createActivity({
   const { error } = await supabase
     .from("activities")
     .insert({ project_id: projectId, actor_id: actorId, action, target });
+  if (error) throw error;
+}
+
+export async function uploadTaskAttachment(taskId: string, file: File) {
+  // Create a unique file name
+  const timestamp = Date.now();
+  const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const fileName = `${taskId}/${timestamp}-${sanitizedFileName}`;
+
+  // Upload file to Supabase storage
+  const { error: uploadError } = await supabase.storage
+    .from("task-attachments")
+    .upload(fileName, file);
+
+  if (uploadError) throw uploadError;
+
+  // Get public URL
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("task-attachments").getPublicUrl(fileName);
+
+  // Create attachment record
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+  };
+
+  const { data: attachment, error: insertError } = await supabase
+    .from("attachments")
+    .insert({
+      task_id: taskId,
+      name: file.name,
+      size: formatFileSize(file.size),
+      type: file.type || "unknown",
+      url: publicUrl,
+    })
+    .select()
+    .single();
+
+  if (insertError) throw insertError;
+
+  // Map to Attachment type
+  return {
+    id: attachment.id,
+    name: attachment.name,
+    size: attachment.size,
+    type: attachment.type,
+    url: attachment.url,
+    uploadedAt: new Date(attachment.uploaded_at).toLocaleDateString(),
+  } as Attachment;
+}
+
+export async function deleteAttachment(attachmentId: string) {
+  // Get the attachment to find the file path
+  const { data: attachment, error: fetchError } = await supabase
+    .from("attachments")
+    .select("*")
+    .eq("id", attachmentId)
+    .single();
+
+  if (fetchError) throw fetchError;
+
+  // Delete from storage
+  const fileName = attachment.url.split("/").pop();
+  if (fileName) {
+    const { error: deleteError } = await supabase.storage
+      .from("task-attachments")
+      .remove([`${attachment.task_id}/${fileName}`]);
+
+    if (deleteError) console.error("Failed to delete file from storage:", deleteError);
+  }
+
+  // Delete attachment record
+  const { error: dbError } = await supabase
+    .from("attachments")
+    .delete()
+    .eq("id", attachmentId);
+
+  if (dbError) throw dbError;
+}
+
+export async function createTag(projectId: string, label: string, color: string) {
+  const { data, error } = await supabase
+    .from("tags")
+    .insert({ project_id: projectId, label, color })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Tag;
+}
+
+export async function deleteTag(tagId: string) {
+  const { error } = await supabase
+    .from("tags")
+    .delete()
+    .eq("id", tagId);
+
   if (error) throw error;
 }

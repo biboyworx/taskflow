@@ -1,12 +1,7 @@
 {
-  "/page": "app/page.js",
   "/api/invite/accept/route": "app/api/invite/accept/route.js",
-  "/auth/callback/route": "app/auth/callback/route.js",
-  "/api/invite/route": "app/api/invite/route.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
   "/board/page": "app/board/page.js",
   "/dashboard/page": "app/dashboard/page.js",
-  "/agenda/page": "app/agenda/page.js",
-  "/notifications/page": "app/notifications/page.js",
-  "/settings/page": "app/settings/page.js"
+  "/agenda/page": "app/agenda/page.js"
 }

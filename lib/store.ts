@@ -26,8 +26,10 @@ import {
   createActivity,
   createColumn as createColumnApi,
   createProject as createProjectApi,
+  createTag as createTagApi,
   createTask as createTaskApi,
   deleteProject as deleteProjectApi,
+  deleteTag as deleteTagApi,
   deleteTask as deleteTaskApi,
   fetchActivities,
   fetchColumns,
@@ -94,6 +96,8 @@ interface AppState {
   addColumn: (title: string, projectId: string) => Promise<void>;
   addTask: (task: Omit<Task, "id" | "order">, actor?: Member) => Promise<void>;
   deleteTask: (taskId: string, actor?: Member) => Promise<void>;
+  createTag: (label: string, color: string) => Promise<void>;
+  deleteTag: (tagId: string) => Promise<void>;
   addComment: (taskId: string, text: string, actor?: Member) => Promise<void>;
   toggleChecklistItem: (taskId: string, itemId: string) => Promise<void>;
   addChecklistItem: (taskId: string, text: string) => Promise<void>;
@@ -246,7 +250,8 @@ export const useAppStore = create<AppState>()(
       },
 
       updateTask: async (taskId, updates, actor) => {
-        if (get().currentMemberRole !== "owner") return;
+        // Allow owners and members to update tasks
+        if (!["owner", "member"].includes(get().currentMemberRole)) return;
         const projectId = get().activeProjectId;
         const taskBefore = get().tasks.find((t) => t.id === taskId);
         await updateTaskApi(taskId, updates);
@@ -289,7 +294,8 @@ export const useAppStore = create<AppState>()(
       },
 
       moveTask: async (taskId, newStatus, actor) => {
-        if (get().currentMemberRole !== "owner") return;
+        // Allow owners and members to move tasks
+        if (!["owner", "member"].includes(get().currentMemberRole)) return;
         const state = get();
         const taskBefore = state.tasks.find((t) => t.id === taskId);
         const tasksInColumn = state.tasks.filter((t) => t.status === newStatus);
@@ -392,6 +398,22 @@ export const useAppStore = create<AppState>()(
             selectedTask: s.selectedTask?.id === taskId ? null : s.selectedTask,
           };
         });
+      },
+
+      createTag: async (label, color) => {
+        const projectId = get().activeProjectId;
+        if (!projectId) return;
+        const newTag = await createTagApi(projectId, label, color);
+        set((s) => ({
+          tags: [...s.tags, newTag],
+        }));
+      },
+
+      deleteTag: async (tagId) => {
+        await deleteTagApi(tagId);
+        set((s) => ({
+          tags: s.tags.filter((t) => t.id !== tagId),
+        }));
       },
 
       addComment: async (taskId, text, actor) => {

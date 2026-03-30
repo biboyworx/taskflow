@@ -1,5 +1,6 @@
 "use client";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   Search,
   SlidersHorizontal,
@@ -10,11 +11,15 @@ import {
   X,
   LogOut,
   User,
+  Moon,
+  Sun,
+  Palette,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 import { Priority } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
+import { searchProjects, fetchUserProfile } from "@/lib/data";
 
 // backend
 import { useAuth } from "../auth-provider";
@@ -32,6 +37,12 @@ const PRIORITY_FILTERS: {
   { label: "High", value: "high", color: "bg-orange-500" },
   { label: "Medium", value: "medium", color: "bg-amber-500" },
   { label: "Low", value: "low", color: "bg-slate-400" },
+];
+
+const THEME_OPTIONS = [
+  { label: "Mist", value: "mist", icon: "🌤️" },
+  { label: "Linen", value: "linen", icon: "🌅" },
+  { label: "Midnight", value: "dark", icon: "🌙" },
 ];
 
 const DEFAULT_MEMBER_COLOR = "#14b8a6";
@@ -63,11 +74,15 @@ const normalizeProfile = (
 
 
 export function Navbar() {
+  const router = useRouter();
   const [showFilter, setShowFilter] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [isInviteSending, setIsInviteSending] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [authName, setAuthName] = useState("");
@@ -84,9 +99,34 @@ export function Navbar() {
   const setFilterPriority = useAppStore((s) => s.setFilterPriority);
   const projects = useAppStore((s) => s.projects);
   const activeProjectId = useAppStore((s) => s.activeProjectId);
+  const setActiveProject = useAppStore((s) => s.setActiveProject);
   const members = useAppStore((s) => s.members);
   const currentMemberRole = useAppStore((s) => s.currentMemberRole);
+  const preferences = useAppStore((s) => s.preferences);
+  const updatePreferences = useAppStore((s) => s.updatePreferences);
+  const activities = useAppStore((s) => s.activities);
   const activeProject = projects.find((p) => p.id === activeProjectId);
+  
+  // Get recent activities (last 5)
+  const recentActivities = useMemo(() => {
+    return activities.slice(0, 5);
+  }, [activities]);
+
+  // Compute search results for projects
+  const projectSearchResults = useMemo(() => {
+    return searchProjects(projects, searchQuery);
+  }, [projects, searchQuery]);
+
+  // Handle project selection from search
+  const handleSelectProject = useCallback(
+    (projectId: string) => {
+      setActiveProject(projectId);
+      setSearchQuery("");
+      setShowSearchResults(false);
+      router.push("/board");
+    },
+    [setActiveProject, setSearchQuery, router]
+  );
 
   // useEffect(() => {
   //   if (!isAuthenticated) return;
@@ -118,6 +158,27 @@ export function Navbar() {
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase() ?? "")
       .join("") || "TU";
+
+  // Fetch user avatar
+  const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (!session?.user?.id) {
+      setUserAvatarUrl(null);
+      return;
+    }
+
+    const fetchUserAvatar = async () => {
+      try {
+        const profile = await fetchUserProfile(session.user.id);
+        setUserAvatarUrl(profile.avatar_url || null);
+      } catch (error) {
+        console.error("Failed to fetch user avatar:", error);
+      }
+    };
+
+    fetchUserAvatar();
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (!session && !isLoading) {
@@ -170,6 +231,17 @@ export function Navbar() {
   useEffect(() => {
     void loadProjectMembers();
   }, [loadProjectMembers]);
+
+  // Close search results when pressing Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowSearchResults(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated || !activeProjectId) return;
@@ -322,19 +394,19 @@ export function Navbar() {
 
   return (
     <>
-      <header className="h-[60px] bg-white/70 backdrop-blur-xl border-b border-white/70 flex items-center px-5 gap-4 shrink-0 z-10 relative">
+      <header className="h-[60px] bg-white/70 backdrop-blur-xl border-b border-white/70 flex items-center px-5 gap-4 shrink-0 z-10 relative theme-dark:bg-slate-900/70 theme-dark:border-slate-800/70">
         {/* Project name */}
         <div className="flex items-center gap-2.5 mr-2 shrink-0">
           <span className="text-xl">
             {isAuthenticated ? (activeProject?.emoji ?? "📁") : "🔒"}
           </span>
           <div>
-            <h1 className="font-display font-semibold text-slate-800 text-[15px] leading-tight">
+            <h1 className="font-display font-semibold text-slate-800 theme-dark:text-slate-100 text-[15px] leading-tight">
               {isAuthenticated
                 ? (activeProject?.name ?? "Project")
                 : "Sign in required"}
             </h1>
-            <p className="text-[11px] text-slate-400 leading-tight">
+            <p className="text-[11px] text-slate-400 theme-dark:text-slate-500 leading-tight">
               Project Board
             </p>
           </div>
@@ -344,21 +416,56 @@ export function Navbar() {
 
         {/* Search */}
         <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 theme-dark:text-slate-500" />
           <input
             type="text"
-            placeholder="Search tasks…"
+            placeholder="Search tasks or projects…"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-8 pl-9 pr-3 rounded-lg bg-white/70 border border-white/70 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400/30 focus:border-brand-400 transition-all"
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowSearchResults(!!e.target.value);
+            }}
+            onFocus={() => {
+              if (searchQuery) setShowSearchResults(true);
+            }}
+            className="w-full h-8 pl-9 pr-3 rounded-lg bg-white/70 theme-dark:bg-slate-800/70 border border-white/70 theme-dark:border-slate-700/70 text-sm text-slate-700 theme-dark:text-slate-100 placeholder:text-slate-400 theme-dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-400/30 focus:border-brand-400 transition-all"
           />
           {searchQuery && (
             <button
-              onClick={() => setSearchQuery("")}
+              onClick={() => {
+                setSearchQuery("");
+                setShowSearchResults(false);
+              }}
               className="absolute right-2 top-1/2 -translate-y-1/2"
             >
-              <X className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600" />
+              <X className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600 theme-dark:text-slate-500 theme-dark:hover:text-slate-400" />
             </button>
+          )}
+
+          {/* Search Results Dropdown */}
+          {showSearchResults && projectSearchResults.length > 0 && (
+            <div className="absolute top-10 left-0 z-50 bg-white/90 theme-dark:bg-slate-800/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 theme-dark:border-slate-700/70 p-2 min-w-[240px] max-w-sm animate-scale-in">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 theme-dark:text-slate-500 px-2 py-1.5">
+                Projects
+              </p>
+              {projectSearchResults.map((project) => (
+                <button
+                  key={project.id}
+                  onClick={() => handleSelectProject(project.id)}
+                  className="flex items-center gap-2.5 w-full px-2 py-2 rounded-lg hover:bg-white/70 theme-dark:hover:bg-slate-700/70 text-sm text-slate-700 theme-dark:text-slate-200 transition-colors text-left"
+                >
+                  <span className="text-base">{project.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{project.name}</p>
+                    {project.description && (
+                      <p className="text-xs text-slate-500 truncate">
+                        {project.description}
+                      </p>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
@@ -369,8 +476,8 @@ export function Navbar() {
             className={cn(
               "flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm font-medium border transition-all",
               filterPriority
-                ? "bg-brand-50/80 border-brand-200 text-brand-700"
-                : "bg-white/70 border-white/70 text-slate-600 hover:bg-white/90",
+                ? "bg-brand-50/80 border-brand-200 text-brand-700 theme-dark:bg-brand-900/50 theme-dark:border-brand-800/80 theme-dark:text-brand-300"
+                : "bg-white/70 theme-dark:bg-slate-800/70 border-white/70 theme-dark:border-slate-700/70 text-slate-600 theme-dark:text-slate-300 hover:bg-white/90 theme-dark:hover:bg-slate-700/90",
             )}
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -381,8 +488,8 @@ export function Navbar() {
           </button>
 
           {showFilter && (
-            <div className="absolute top-10 left-0 z-50 bg-white/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 p-2 min-w-[160px] animate-scale-in">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 px-2 py-1.5">
+            <div className="absolute top-10 left-0 z-50 bg-white/90 theme-dark:bg-slate-800/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 theme-dark:border-slate-700/70 p-2 min-w-[160px] animate-scale-in">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 theme-dark:text-slate-500 px-2 py-1.5">
                 Priority
               </p>
               {PRIORITY_FILTERS.map((f) => (
@@ -392,11 +499,46 @@ export function Navbar() {
                     setFilterPriority(f.value);
                     setShowFilter(false);
                   }}
-                  className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-lg hover:bg-white/70 text-sm text-slate-700 transition-colors"
+                  className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-lg hover:bg-white/70 theme-dark:hover:bg-slate-700/70 text-sm text-slate-700 theme-dark:text-slate-200 transition-colors"
                 >
                   <span className={cn("w-2 h-2 rounded-full", f.color)} />
                   {f.label}
                   {filterPriority === f.value && (
+                    <Check className="w-3.5 h-3.5 text-brand-500 ml-auto" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Theme */}
+        <div className="relative">
+          <button
+            onClick={() => setShowThemeMenu(!showThemeMenu)}
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm font-medium border bg-white/70 theme-dark:bg-slate-800/70 border-white/70 theme-dark:border-slate-700/70 text-slate-600 theme-dark:text-slate-300 hover:bg-white/90 theme-dark:hover:bg-slate-700/90 transition-all"
+          >
+            <Palette className="w-3.5 h-3.5" />
+            Theme
+          </button>
+
+          {showThemeMenu && (
+            <div className="absolute top-10 left-0 z-50 bg-white/90 theme-dark:bg-slate-800/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 theme-dark:border-slate-700/70 p-2 min-w-[160px] animate-scale-in">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 theme-dark:text-slate-500 px-2 py-1.5">
+                Theme
+              </p>
+              {THEME_OPTIONS.map((t) => (
+                <button
+                  key={t.value}
+                  onClick={() => {
+                    updatePreferences({ theme: t.value as any });
+                    setShowThemeMenu(false);
+                  }}
+                  className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-lg hover:bg-white/70 theme-dark:hover:bg-slate-700/70 text-sm text-slate-700 theme-dark:text-slate-200 transition-colors"
+                >
+                  <span className="text-base">{t.icon}</span>
+                  {t.label}
+                  {preferences.theme === t.value && (
                     <Check className="w-3.5 h-3.5 text-brand-500 ml-auto" />
                   )}
                 </button>
@@ -414,10 +556,14 @@ export function Navbar() {
               <div
                 key={m.id}
                 title={m.name}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white ring-2 ring-white shrink-0 cursor-pointer hover:scale-110 transition-transform"
+                className="w-7 h-7 rounded-full ring-2 ring-white shrink-0 cursor-pointer hover:scale-110 transition-transform overflow-hidden flex items-center justify-center text-[11px] font-bold text-white"
                 style={{ backgroundColor: m.color }}
               >
-                {m.initials}
+                {m.avatar ? (
+                  <img src={m.avatar} alt={m.name} className="w-full h-full object-cover" />
+                ) : (
+                  m.initials
+                )}
               </div>
             ))}
             {members.length > 4 && (
@@ -438,8 +584,8 @@ export function Navbar() {
               Invite
             </button>
             {showInvite && (
-              <div className="absolute top-10 right-0 z-50 bg-white/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 p-4 w-72 animate-scale-in">
-                <p className="font-display font-semibold text-slate-800 text-sm mb-3">
+              <div className="absolute top-10 right-0 z-50 bg-white/90 theme-dark:bg-slate-800/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 theme-dark:border-slate-700/70 p-4 w-72 animate-scale-in">
+                <p className="font-display font-semibold text-slate-800 theme-dark:text-slate-100 text-sm mb-3">
                   Invite to project
                 </p>
                 <div className="flex gap-2">
@@ -448,7 +594,7 @@ export function Navbar() {
                     placeholder="Enter email address"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    className="flex-1 h-8 px-3 rounded-lg bg-white/70 border border-white/70 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/30 focus:border-brand-400 transition-all"
+                    className="flex-1 h-8 px-3 rounded-lg bg-white/70 theme-dark:bg-slate-700/70 border border-white/70 theme-dark:border-slate-700/70 text-sm text-slate-700 theme-dark:text-slate-100 placeholder:text-slate-400 theme-dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-400/30 focus:border-brand-400 transition-all"
                   />
                   <button
                     onClick={handleInvite}
@@ -467,7 +613,7 @@ export function Navbar() {
         {!isAuthenticated && (
           <button
             onClick={() => setShowAuthModal(true)}
-            className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm font-medium bg-white/80 border border-white/70 text-slate-600 hover:bg-white transition-colors"
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm font-medium bg-white/80 theme-dark:bg-slate-800/70 border border-white/70 theme-dark:border-slate-700/70 text-slate-600 theme-dark:text-slate-300 hover:bg-white theme-dark:hover:bg-slate-700/90 transition-colors"
           >
             <User className="w-3.5 h-3.5" />
             Sign in
@@ -476,10 +622,51 @@ export function Navbar() {
 
         {/* Notifications */}
         {isAuthenticated && (
-          <button className="relative w-8 h-8 rounded-lg bg-white/70 border border-white/70 flex items-center justify-center hover:bg-white/90 transition-colors">
-            <Bell className="w-4 h-4 text-slate-500" />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500" />
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative w-8 h-8 rounded-lg bg-white/70 theme-dark:bg-slate-800/70 border border-white/70 theme-dark:border-slate-700/70 flex items-center justify-center hover:bg-white/90 theme-dark:hover:bg-slate-700/90 transition-colors">
+              <Bell className="w-4 h-4 text-slate-500 theme-dark:text-slate-400" />
+              {activities.length > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500" />
+              )}
+            </button>
+            
+            {/* Notifications Dropdown */}
+            {showNotifications && (
+              <div className="absolute top-10 right-0 z-50 bg-white/95 theme-dark:bg-slate-800/95 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 theme-dark:border-slate-700/70 p-3 min-w-[320px] animate-scale-in">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-slate-800 theme-dark:text-slate-100 text-sm">Notifications</h3>
+                  {recentActivities.length > 0 && (
+                    <span className="text-xs text-slate-400 theme-dark:text-slate-500 bg-slate-100 theme-dark:bg-slate-700/70 px-2 py-0.5 rounded">
+                      {recentActivities.length}
+                    </span>
+                  )}
+                </div>
+                
+                {recentActivities.length === 0 ? (
+                  <p className="text-sm text-slate-400 theme-dark:text-slate-500 py-4 text-center">No new notifications</p>
+                ) : (
+                  <div className="space-y-2 max-h-80 overflow-y-auto">
+                    {recentActivities.map((activity) => (
+                      <div 
+                        key={activity.id}
+                        className="p-2 rounded-lg bg-white/70 theme-dark:bg-slate-700/70 hover:bg-white/90 theme-dark:hover:bg-slate-700/90 transition-colors"
+                      >
+                        <p className="text-xs text-slate-800 theme-dark:text-slate-200 mb-1">
+                          <span className="font-semibold">{activity.user?.name ?? 'User'}</span> {activity.action}
+                        </p>
+                        <p className="text-xs text-slate-500 theme-dark:text-slate-400">{activity.target}</p>
+                        <p className="text-[10px] text-slate-400 theme-dark:text-slate-500 mt-1">
+                          {new Date(activity.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         )}
 
         {/* User */}
@@ -487,33 +674,37 @@ export function Navbar() {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 h-8 px-2.5 rounded-lg hover:bg-white/70 border border-transparent hover:border-white/70 transition-all"
+              className="flex items-center gap-2 h-8 px-2.5 rounded-lg hover:bg-white/70 theme-dark:hover:bg-slate-700/70 border border-transparent hover:border-white/70 theme-dark:hover:border-slate-700/70 transition-all"
             >
               <div
-                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white overflow-hidden"
                 style={{ backgroundColor: "#14b8a6" }}
               >
-                {userInitials}
+                {userAvatarUrl ? (
+                  <img src={userAvatarUrl} alt="User avatar" className="w-full h-full object-cover" />
+                ) : (
+                  userInitials
+                )}
               </div>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
+              <ChevronDown className="w-3 h-3 text-slate-400 theme-dark:text-slate-500" />
             </button>
             {showUserMenu && (
-              <div className="absolute top-10 right-0 z-50 bg-white/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 p-2 min-w-[180px] animate-scale-in">
+              <div className="absolute top-10 right-0 z-50 bg-white/90 theme-dark:bg-slate-800/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 theme-dark:border-slate-700/70 p-2 min-w-[180px] animate-scale-in">
                 <div className="px-2.5 py-2">
-                  <p className="text-xs text-slate-400">Signed in as</p>
-                  <p className="text-sm font-semibold text-slate-800 truncate">
+                  <p className="text-xs text-slate-400 theme-dark:text-slate-500">Signed in as</p>
+                  <p className="text-sm font-semibold text-slate-800 theme-dark:text-slate-100 truncate">
                     {userEmail}
                   </p>
                 </div>
-                <div className="h-px bg-white/70 my-1" />
+                <div className="h-px bg-white/70 theme-dark:bg-slate-700/70 my-1" />
                 <button
                   onClick={async () => {
                     await signOut();
                     setShowUserMenu(false);
                   }}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm text-slate-700 hover:bg-white/70 transition-colors"
+                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm text-slate-700 theme-dark:text-slate-300 hover:bg-white/70 theme-dark:hover:bg-slate-700/70 transition-colors"
                 >
-                  <LogOut className="w-4 h-4 text-slate-400" />
+                  <LogOut className="w-4 h-4 text-slate-400 theme-dark:text-slate-500" />
                   Sign out
                 </button>
               </div>
@@ -531,16 +722,16 @@ export function Navbar() {
           }}
         >
           <div className="absolute inset-0 bg-black/20 backdrop-blur-[3px]" />
-          <div className="relative w-full max-w-sm bg-white/90 backdrop-blur-xl rounded-2xl border border-white/70 shadow-modal p-6 animate-scale-in">
+          <div className="relative w-full max-w-sm bg-white/90 theme-dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl border border-white/70 theme-dark:border-slate-700/70 shadow-modal p-6 animate-scale-in">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display font-semibold text-slate-800">
+              <h2 className="font-display font-semibold text-slate-800 theme-dark:text-slate-100">
                 {authMode === "signin" ? "Sign in" : "Sign up"}
               </h2>
               <button
                 onClick={() => setShowAuthModal(false)}
-                className="w-7 h-7 rounded-lg hover:bg-white/70 flex items-center justify-center transition-colors"
+                className="w-7 h-7 rounded-lg hover:bg-white/70 theme-dark:hover:bg-slate-700/70 flex items-center justify-center transition-colors"
               >
-                <X className="w-4 h-4 text-slate-400" />
+                <X className="w-4 h-4 text-slate-400 theme-dark:text-slate-500" />
               </button>
             </div>
             {isError && (

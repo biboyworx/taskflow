@@ -8,6 +8,10 @@
   --navbar-height: 60px;
   --body-bg: linear-gradient(135deg, #f6fbff 0%, #f4fbf7 55%, #fff6f2 100%);
   --body-text: #0f172a;
+  --body-text-secondary: #64748b;
+  --navbar-bg: rgba(255, 255, 255, 0.7);
+  --navbar-text: #0f172a;
+  --navbar-text-secondary: #64748b;
   --shell-bg: radial-gradient(circle at 10% 10%, rgba(45, 212, 191, 0.18), transparent 45%),
     radial-gradient(circle at 90% 20%, rgba(251, 191, 36, 0.12), transparent 40%),
     radial-gradient(circle at 70% 90%, rgba(248, 113, 113, 0.12), transparent 45%),
@@ -21,6 +25,10 @@
 .theme-mist {
   --body-bg: linear-gradient(135deg, #f6fbff 0%, #f4fbf7 55%, #fff6f2 100%);
   --body-text: #0f172a;
+  --body-text-secondary: #64748b;
+  --navbar-bg: rgba(255, 255, 255, 0.7);
+  --navbar-text: #0f172a;
+  --navbar-text-secondary: #64748b;
   --shell-bg: radial-gradient(circle at 10% 10%, rgba(45, 212, 191, 0.18), transparent 45%),
     radial-gradient(circle at 90% 20%, rgba(251, 191, 36, 0.12), transparent 40%),
     radial-gradient(circle at 70% 90%, rgba(248, 113, 113, 0.12), transparent 45%),
@@ -34,6 +42,10 @@
 .theme-linen {
   --body-bg: linear-gradient(135deg, #fff7ee 0%, #f6f1e8 55%, #f3f8f5 100%);
   --body-text: #1f2937;
+  --body-text-secondary: #6b7280;
+  --navbar-bg: rgba(255, 255, 255, 0.7);
+  --navbar-text: #1f2937;
+  --navbar-text-secondary: #6b7280;
   --shell-bg: radial-gradient(circle at 12% 12%, rgba(251, 146, 60, 0.16), transparent 48%),
     radial-gradient(circle at 88% 18%, rgba(45, 212, 191, 0.12), transparent 42%),
     radial-gradient(circle at 70% 85%, rgba(168, 85, 247, 0.08), transparent 45%),
@@ -47,6 +59,10 @@
 .theme-dark {
   --body-bg: linear-gradient(135deg, #0b1220 0%, #111827 55%, #0f172a 100%);
   --body-text: #e2e8f0;
+  --body-text-secondary: #cbd5e1;
+  --navbar-bg: rgba(15, 23, 42, 0.7);
+  --navbar-text: #e2e8f0;
+  --navbar-text-secondary: #cbd5e1;
   --shell-bg: radial-gradient(circle at 15% 15%, rgba(45, 212, 191, 0.16), transparent 45%),
     radial-gradient(circle at 85% 15%, rgba(96, 165, 250, 0.18), transparent 40%),
     radial-gradient(circle at 70% 85%, rgba(248, 113, 113, 0.14), transparent 45%),
