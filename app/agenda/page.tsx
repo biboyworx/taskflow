@@ -16,8 +16,19 @@ function toDateKey(date: Date) {
   return `${y}-${m}-${d}`;
 }
 
+function toDateKeyFromString(value: string) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (match) {
+    const [, dd, mm, yyyy] = match;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return value;
+}
+
 export default function AgendaPage() {
   const preferences = useAppStore((s) => s.preferences);
+  const columns = useAppStore((s) => s.columns);
   const selectedTask = useAppStore((s) => s.selectedTask);
   const setSelectedTask = useAppStore((s) => s.setSelectedTask);
   const { user } = useAuth();
@@ -60,12 +71,29 @@ export default function AgendaPage() {
   userTasks.forEach((task) => {
     if (!task.dueDate) return;
     if (!preferences.showCompleted && task.status === "done") return;
-    if (!tasksByDate[task.dueDate]) tasksByDate[task.dueDate] = [];
-    tasksByDate[task.dueDate].push(task);
+    const dateKey = toDateKeyFromString(task.dueDate);
+    if (!tasksByDate[dateKey]) tasksByDate[dateKey] = [];
+    tasksByDate[dateKey].push(task);
   });
 
   const selectedTasks = tasksByDate[selectedDate] ?? [];
   const noDate = userTasks.filter((t) => !t.dueDate && (preferences.showCompleted || t.status !== "done"));
+  const tomorrowKey = toDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
+
+  const getStatusLabel = (task: any) =>
+    task?.statusLabel ?? columns.find((c) => c.id === task.status)?.title ?? "";
+
+  const getProjectLabel = (task: any) =>
+    task?.projectName ?? "Project";
+
+  const getDueLabel = (dueDate?: string | null) => {
+    if (!dueDate) return "No due date";
+    const dateKey = toDateKeyFromString(dueDate);
+    if (dateKey === todayKey) return "Due today";
+    if (dateKey === tomorrowKey) return "Due tomorrow";
+    if (isOverdue(dateKey)) return "Overdue";
+    return formatDate(dateKey);
+  };
 
   return (
     <>
@@ -214,13 +242,16 @@ export default function AgendaPage() {
                       )} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-slate-700 theme-dark:text-slate-200 truncate">{task.title}</p>
-                        <p className="text-xs text-slate-400 theme-dark:text-slate-500">{task.status}</p>
+                        <p className="text-xs text-slate-400 theme-dark:text-slate-500">
+                          {getProjectLabel(task)}
+                          {getStatusLabel(task) ? ` • ${getStatusLabel(task)}` : ""}
+                        </p>
                       </div>
                       <span className={cn(
                         "text-xs font-medium",
                         isOverdue(task.dueDate) ? "text-red-500" : "text-slate-400 theme-dark:text-slate-500"
                       )}>
-                        {formatDate(task.dueDate)}
+                        {getDueLabel(task.dueDate)}
                       </span>
                     </button>
                   ))}

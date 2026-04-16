@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import {
   deleteCalendarEvent,
   ensureTaskflowCalendar,
+  findExistingTaskEvents,
   getValidGoogleAccessToken,
   upsertCalendarEvent,
   type CalendarTask,
@@ -105,12 +106,38 @@ export async function POST(request: Request) {
 
     for (const task of activeTasks) {
       const existing = eventMap.get(task.id);
+      let existingEventId = existing?.calendar_event_id ?? null;
+
+      if (!existingEventId) {
+        const matches = await findExistingTaskEvents({
+          accessToken,
+          calendarId,
+          taskId: task.id,
+        });
+
+        if (matches.length > 0) {
+          existingEventId = matches[0].id;
+          if (matches.length > 1) {
+            const duplicates = matches.slice(1);
+            for (const dup of duplicates) {
+              try {
+                await deleteCalendarEvent({
+                  accessToken,
+                  calendarId,
+                  eventId: dup.id,
+                });
+              } catch {}
+            }
+          }
+        }
+      }
+
       const eventId = await upsertCalendarEvent({
         accessToken,
         calendarId,
         timezone: timezone || "UTC",
         task,
-        existingEventId: existing?.calendar_event_id ?? null,
+        existingEventId,
         reminders,
       });
 

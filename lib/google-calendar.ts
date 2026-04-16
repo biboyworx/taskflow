@@ -21,6 +21,7 @@ type CalendarTask = {
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3";
 const CALENDAR_NAME = "Tasqon";
+const TASK_ID_PROP = "tasqonTaskId";
 
 function isTokenExpiringSoon(expiresAt: string | null) {
   if (!expiresAt) return true;
@@ -30,6 +31,17 @@ function isTokenExpiringSoon(expiresAt: string | null) {
 
 function getTodayDateString() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function normalizeDateString(input: string | null) {
+  if (!input) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return input;
+  const match = input.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (match) {
+    const [, dd, mm, yyyy] = match;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return null;
 }
 
 function addDays(dateString: string, days: number) {
@@ -194,7 +206,7 @@ function buildEventPayload(
   timezone: string,
   reminders: { popupMinutes: number | null; emailMinutes: number | null },
 ) {
-  const dueDate = task.dueDate || getTodayDateString();
+  const dueDate = normalizeDateString(task.dueDate) || getTodayDateString();
   const endDate = addDays(dueDate, 1);
   const descriptionParts = [
     task.projectName ? `Project: ${task.projectName}` : null,
@@ -214,11 +226,37 @@ function buildEventPayload(
     description: descriptionParts.join("\n"),
     start: { date: dueDate, timeZone: timezone },
     end: { date: endDate, timeZone: timezone },
+    extendedProperties: {
+      private: {
+        [TASK_ID_PROP]: task.id,
+      },
+    },
     reminders: {
       useDefault: false,
       overrides,
     },
   };
+}
+
+export async function findExistingTaskEvents(params: {
+  accessToken: string;
+  calendarId: string;
+  taskId: string;
+}) {
+  const { accessToken, calendarId, taskId } = params;
+  const query = new URLSearchParams({
+    maxResults: "50",
+    singleEvents: "true",
+    showDeleted: "false",
+    privateExtendedProperty: `${TASK_ID_PROP}=${taskId}`,
+  });
+
+  const result = await fetchJson<{ items?: Array<{ id: string }> }>(
+    `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events?${query.toString()}`,
+    accessToken,
+  );
+
+  return result.items || [];
 }
 
 export async function upsertCalendarEvent(params: {

@@ -269,7 +269,7 @@ export async function fetchTasks(projectId: string) {
   const { data, error } = await supabase
     .from("tasks")
     .select(
-      "*, assignees:task_assignees(user_id, profile:profiles(id, full_name, email, avatar_url, initials, color, role)), tags:task_tags(tag:tags(id, label, color)), checklist:checklist_items(*), comments:comments(id, text, created_at, author:profiles(id, full_name, email, avatar_url, initials, color, role)), attachments:attachments(*)"
+      "*, column:columns(id, title), assignees:task_assignees(user_id, profile:profiles(id, full_name, email, avatar_url, initials, color, role)), tags:task_tags(tag:tags(id, label, color)), checklist:checklist_items(*), comments:comments(id, text, created_at, author:profiles(id, full_name, email, avatar_url, initials, color, role)), attachments:attachments(*)"
     )
     .eq("project_id", projectId)
     .order("order_index", { ascending: true });
@@ -313,6 +313,7 @@ export async function fetchTasks(projectId: string) {
       title: row.title,
       description: row.description || "",
       status: row.column_id,
+      statusLabel: row.column?.title ?? null,
       priority: PRIORITY_VALUES.includes(row.priority)
         ? row.priority
         : "medium",
@@ -345,7 +346,7 @@ export async function fetchUserAssignedTasks(userId: string) {
   const { data, error } = await supabase
     .from("tasks")
     .select(
-      "*, assignees:task_assignees(user_id, profile:profiles(id, full_name, email, avatar_url, initials, color, role)), tags:task_tags(tag:tags(id, label, color)), checklist:checklist_items(*), comments:comments(id, text, created_at, author:profiles(id, full_name, email, avatar_url, initials, color, role)), attachments:attachments(*)"
+      "*, column:columns(id, title), project:projects(id, name), assignees:task_assignees(user_id, profile:profiles(id, full_name, email, avatar_url, initials, color, role)), tags:task_tags(tag:tags(id, label, color)), checklist:checklist_items(*), comments:comments(id, text, created_at, author:profiles(id, full_name, email, avatar_url, initials, color, role)), attachments:attachments(*)"
     )
     .in("project_id", projectIds)
     .order("created_at", { ascending: false });
@@ -389,6 +390,8 @@ export async function fetchUserAssignedTasks(userId: string) {
       title: row.title,
       description: row.description || "",
       status: row.column_id,
+      statusLabel: row.column?.title ?? null,
+      projectName: row.project?.name ?? null,
       priority: PRIORITY_VALUES.includes(row.priority)
         ? row.priority
         : "medium",
