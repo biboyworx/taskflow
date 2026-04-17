@@ -8,6 +8,7 @@ import {
   Calendar,
   ArrowRight,
   Flame,
+  Target,
 } from "lucide-react";
 import {
   cn,
@@ -29,6 +30,8 @@ export default function DashboardPage() {
   const filterArchived = useAppStore((s) => s.filterArchived);
   const filterAssignees = useAppStore((s) => s.filterAssignees);
   const filterTags = useAppStore((s) => s.filterTags);
+  const projects = useAppStore((s) => s.projects);
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
   const { user } = useAuth();
 
   // Subscribe to store tasks instead of fetching locally
@@ -110,6 +113,26 @@ export default function DashboardPage() {
     return { myTasks, dueTodayTasks, overdueTasks, doneTasks };
   }, [userTasks, filterPriority, filterArchived, filterAssignees, filterTags]);
 
+  const focusTasks = useMemo(() => {
+    const sorted = [...myTasks].filter((t) => t.status !== "done");
+    sorted.sort((a, b) => {
+      const aOverdue = isOverdue(a.dueDate);
+      const bOverdue = isOverdue(b.dueDate);
+      if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
+
+      if (!a.dueDate && b.dueDate) return 1;
+      if (a.dueDate && !b.dueDate) return -1;
+      if (!a.dueDate && !b.dueDate) return 0;
+      return new Date(a.dueDate as string).getTime() - new Date(b.dueDate as string).getTime();
+    });
+    return sorted.slice(0, 3);
+  }, [myTasks]);
+
+  const getProjectLabel = (task: Task) =>
+    (task as any).projectName ??
+    projects.find((p) => p.id === activeProjectId)?.name ??
+    "Project";
+
   const stats = [
     {
       label: "My Tasks",
@@ -144,15 +167,26 @@ export default function DashboardPage() {
   return (
     <>
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-5xl mx-auto space-y-6">
+        <div className="max-w-6xl mx-auto space-y-6">
           {/* Welcome */}
-          <div>
-            <h1 className="font-display font-bold text-2xl text-slate-800 theme-dark:text-slate-100">
-              Good morning, {displayName} 👋
-            </h1>
-            <p className="text-slate-400 theme-dark:text-slate-500 text-sm mt-1">
-              Here's what's happening with your projects today.
-            </p>
+          <div className="relative overflow-hidden rounded-3xl border border-white/70 theme-dark:border-slate-700/70 bg-white/70 theme-dark:bg-slate-800/70 backdrop-blur-xl p-6 shadow-card">
+            <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-brand-200/40 blur-3xl" />
+            <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-amber-200/40 blur-3xl" />
+            <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h1 className="font-display font-bold text-2xl text-slate-800 theme-dark:text-slate-100">
+                  Welcome back, {displayName}
+                </h1>
+                <p className="text-slate-500 theme-dark:text-slate-400 text-sm mt-1">
+                  You have {myTasks.length} active tasks. {dueTodayTasks.length} due today.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 theme-dark:text-slate-400">
+                <span className="rounded-full border border-white/70 theme-dark:border-slate-700/70 bg-white/70 theme-dark:bg-slate-800/70 px-3 py-1">Focus mode</span>
+                <span className="rounded-full border border-white/70 theme-dark:border-slate-700/70 bg-white/70 theme-dark:bg-slate-800/70 px-3 py-1">Calendar sync</span>
+                <span className="rounded-full border border-white/70 theme-dark:border-slate-700/70 bg-white/70 theme-dark:bg-slate-800/70 px-3 py-1">Bulk actions</span>
+              </div>
+            </div>
           </div>
 
           {/* Stats */}
@@ -161,24 +195,20 @@ export default function DashboardPage() {
               <div
                 key={label}
                 className={cn(
-                  "rounded-2xl border p-4 bg-white/70 theme-dark:bg-slate-800/70 backdrop-blur-xl shadow-card animate-fade-up transition-transform hover:-translate-y-0.5",
+                  "rounded-2xl border p-4 bg-white/80 theme-dark:bg-slate-800/80 backdrop-blur-xl shadow-card animate-fade-up transition-transform hover:-translate-y-0.5",
                   bg,
                 )}
                 style={{ animationDelay: `${index * 70}ms` }}
               >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-slate-600 theme-dark:text-slate-300">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase tracking-wide text-slate-500 theme-dark:text-slate-400">
                     {label}
                   </span>
-                  <div
-                    className={cn(
-                      "w-8 h-8 rounded-xl flex items-center justify-center bg-white/70 theme-dark:bg-slate-700/70",
-                    )}
-                  >
+                  <div className="w-9 h-9 rounded-2xl flex items-center justify-center bg-white/80 theme-dark:bg-slate-700/70">
                     <Icon className={cn("w-4 h-4", color)} />
                   </div>
                 </div>
-                <p className="font-display font-bold text-3xl text-slate-800 theme-dark:text-slate-100">
+                <p className="mt-3 font-display font-bold text-3xl text-slate-800 theme-dark:text-slate-100">
                   {value}
                 </p>
               </div>
@@ -209,22 +239,32 @@ export default function DashboardPage() {
                       onClick={() => setSelectedTask(task)}
                       className="flex items-center gap-3 px-5 py-3 hover:bg-white/70 theme-dark:hover:bg-slate-700/70 cursor-pointer transition-all group"
                     >
-                      <div
-                        className={cn(
-                          "w-2 h-2 rounded-full shrink-0",
-                          priority.dot,
-                        )}
-                      />
-                      <p className="flex-1 text-sm font-medium text-slate-700 theme-dark:text-slate-200 truncate group-hover:text-slate-900 theme-dark:group-hover:text-slate-100">
-                        {task.title}
-                      </p>
+                      <div className={cn("w-2 h-2 rounded-full shrink-0", priority.dot)} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-700 theme-dark:text-slate-200 truncate group-hover:text-slate-900 theme-dark:group-hover:text-slate-100">
+                          {task.title}
+                        </p>
+                        <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400 theme-dark:text-slate-500">
+                          <span className="rounded-full border border-slate-200 bg-white/70 theme-dark:bg-slate-800/70 px-2 py-0.5">
+                            {getProjectLabel(task)}
+                          </span>
+                          <span className="hidden sm:inline">{(task as any).statusLabel ?? ""}</span>
+                        </div>
+                      </div>
+                      <span className={cn(
+                        "hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border",
+                        priority.bg,
+                        priority.color
+                      )}>
+                        {priority.label}
+                      </span>
                       {task.dueDate && (
                         <span
                           className={cn(
-                            "text-xs shrink-0",
+                            "text-xs shrink-0 px-2 py-0.5 rounded-full border",
                             overdue
-                              ? "text-red-500 font-semibold"
-                              : "text-slate-400 theme-dark:text-slate-500",
+                              ? "text-red-600 border-red-200 bg-red-50"
+                              : "text-slate-500 theme-dark:text-slate-400 border-slate-200 bg-white/70 theme-dark:bg-slate-800/70",
                           )}
                         >
                           {formatDate(task.dueDate)}
@@ -245,50 +285,101 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Activity */}
-            <div
-              className="bg-white/80 theme-dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl border border-white/70 theme-dark:border-slate-700/70 shadow-card overflow-hidden animate-fade-up"
-              style={{ animationDelay: "220ms" }}
-            >
-              <div className="flex items-center justify-between px-5 py-4 border-b border-white/70 theme-dark:border-slate-700/70">
-                <h2 className="font-display font-semibold text-slate-800 theme-dark:text-slate-100">
-                  Activity
-                </h2>
-                <Flame className="w-4 h-4 text-orange-400" />
-              </div>
-              <div className="divide-y divide-white/70 theme-dark:divide-slate-700/70">
-                {activities.map((item) => (
-                  <div key={item.id} className="flex gap-3 px-4 py-3">
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0 mt-0.5 overflow-hidden"
-                      style={{ backgroundColor: item.user?.color ?? "#94a3b8" }}
-                    >
-                      {item.user?.avatar ? (
-                        <img
-                          src={item.user.avatar}
-                          alt={item.user?.name ?? "User"}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        (item.user?.initials ?? "?")
-                      )}
+            <div className="flex flex-col gap-4">
+              {/* Focus today */}
+              <div
+                className="bg-white/80 theme-dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl border border-white/70 theme-dark:border-slate-700/70 shadow-card overflow-hidden animate-fade-up"
+                style={{ animationDelay: "200ms" }}
+              >
+                <div className="flex items-center justify-between px-5 py-4 border-b border-white/70 theme-dark:border-slate-700/70">
+                  <h2 className="font-display font-semibold text-slate-800 theme-dark:text-slate-100">
+                    Focus today
+                  </h2>
+                  <Target className="w-4 h-4 text-emerald-500" />
+                </div>
+                <div className="divide-y divide-white/70 theme-dark:divide-slate-700/70">
+                  {focusTasks.length === 0 ? (
+                    <div className="px-5 py-6 text-sm text-slate-400 theme-dark:text-slate-500">
+                      No urgent tasks right now.
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-slate-600 theme-dark:text-slate-300 leading-snug">
-                        <span className="font-semibold text-slate-800 theme-dark:text-slate-100">
-                          {item.user?.name?.split(" ")[0] ?? "Someone"}
-                        </span>{" "}
-                        {item.action}{" "}
-                        <span className="text-brand-600 theme-dark:text-brand-400 font-medium truncate">
-                          {item.target}
+                  ) : (
+                    focusTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        onClick={() => setSelectedTask(task)}
+                        className="flex items-center gap-3 px-5 py-3 hover:bg-white/70 theme-dark:hover:bg-slate-700/70 cursor-pointer transition-all group"
+                      >
+                        <div className={cn("w-2 h-2 rounded-full", PRIORITY_CONFIG[task.priority].dot)} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-700 theme-dark:text-slate-200 truncate">
+                            {task.title}
+                          </p>
+                          <p className="text-[11px] text-slate-400 theme-dark:text-slate-500">
+                            {getProjectLabel(task)}
+                          </p>
+                        </div>
+                        <span className={cn(
+                          "text-xs shrink-0 px-2 py-0.5 rounded-full border",
+                          isOverdue(task.dueDate)
+                            ? "text-red-600 border-red-200 bg-red-50"
+                            : "text-slate-500 theme-dark:text-slate-400 border-slate-200 bg-white/70 theme-dark:bg-slate-800/70"
+                        )}>
+                          {task.dueDate ? formatDate(task.dueDate) : "No date"}
                         </span>
-                      </p>
-                      <p className="text-[11px] text-slate-400 theme-dark:text-slate-500 mt-0.5">
-                        {timeAgo(item.createdAt)}
-                      </p>
-                    </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Activity */}
+              <div
+                className="bg-white/80 theme-dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl border border-white/70 theme-dark:border-slate-700/70 shadow-card overflow-hidden animate-fade-up"
+                style={{ animationDelay: "240ms" }}
+              >
+                <div className="flex items-center justify-between px-5 py-4 border-b border-white/70 theme-dark:border-slate-700/70">
+                  <h2 className="font-display font-semibold text-slate-800 theme-dark:text-slate-100">
+                    Activity
+                  </h2>
+                  <Flame className="w-4 h-4 text-orange-400" />
+                </div>
+                <div className="relative max-h-[320px] overflow-y-auto">
+                  <div className="absolute left-7 top-4 bottom-4 w-px bg-slate-200 theme-dark:bg-slate-700" />
+                  <div className="space-y-4 px-4 py-4">
+                    {activities.map((item) => (
+                      <div key={item.id} className="relative flex gap-3">
+                        <div
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0 mt-0.5 overflow-hidden border border-white/70 theme-dark:border-slate-700/70"
+                          style={{ backgroundColor: item.user?.color ?? "#94a3b8" }}
+                        >
+                          {item.user?.avatar ? (
+                            <img
+                              src={item.user.avatar}
+                              alt={item.user?.name ?? "User"}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            (item.user?.initials ?? "?")
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-slate-600 theme-dark:text-slate-300 leading-snug">
+                            <span className="font-semibold text-slate-800 theme-dark:text-slate-100">
+                              {item.user?.name?.split(" ")[0] ?? "Someone"}
+                            </span>{" "}
+                            {item.action}{" "}
+                            <span className="text-brand-600 theme-dark:text-brand-400 font-medium truncate">
+                              {item.target}
+                            </span>
+                          </p>
+                          <p className="text-[11px] text-slate-400 theme-dark:text-slate-500 mt-0.5">
+                            {timeAgo(item.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
             </div>
           </div>

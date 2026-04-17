@@ -144,14 +144,25 @@ export default function SettingsPage() {
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div>
-          <h1 className="font-display font-bold text-2xl text-slate-800">Settings</h1>
-          <p className="text-sm text-slate-400 mt-1">Personalize your workspace and preferences.</p>
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-white/70 backdrop-blur-xl p-6 shadow-card">
+          <div className="absolute -right-14 -top-16 h-32 w-32 rounded-full bg-brand-200/40 blur-3xl" />
+          <div className="absolute -left-12 bottom-0 h-28 w-28 rounded-full bg-amber-200/40 blur-3xl" />
+          <div className="relative flex flex-col gap-3">
+            <h1 className="font-display font-bold text-2xl text-slate-800">Settings</h1>
+            <p className="text-sm text-slate-500">
+              Personalize your workspace, manage integrations, and keep your account in sync.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Account</h2>
+          <span className="text-xs text-slate-400">Profile & session</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="bg-white/80 backdrop-blur-xl border border-white/70 shadow-card rounded-2xl p-5">
+          <div className="bg-white/80 backdrop-blur-xl border border-white/70 shadow-card rounded-3xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-9 h-9 rounded-xl bg-white/70 border border-white/70 flex items-center justify-center">
                 <User className="w-4 h-4 text-brand-500" />
@@ -194,7 +205,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="bg-white/80 backdrop-blur-xl border border-white/70 shadow-card rounded-2xl p-5">
+          <div className="bg-white/80 backdrop-blur-xl border border-white/70 shadow-card rounded-3xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-9 h-9 rounded-xl bg-white/70 border border-white/70 flex items-center justify-center">
                 <SlidersHorizontal className="w-4 h-4 text-brand-500" />
@@ -266,7 +277,12 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl border border-white/70 shadow-card rounded-2xl p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Integrations</h2>
+          <span className="text-xs text-slate-400">Calendar sync</span>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur-xl border border-white/70 shadow-card rounded-3xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-9 h-9 rounded-xl bg-white/70 border border-white/70 flex items-center justify-center">
               <Calendar className="w-4 h-4 text-brand-500" />
@@ -342,7 +358,12 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl border border-white/70 shadow-card rounded-2xl p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Security</h2>
+          <span className="text-xs text-slate-400">Session control</span>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur-xl border border-white/70 shadow-card rounded-3xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-9 h-9 rounded-xl bg-white/70 border border-white/70 flex items-center justify-center">
               <ShieldCheck className="w-4 h-4 text-brand-500" />

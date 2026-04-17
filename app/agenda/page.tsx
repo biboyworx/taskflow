@@ -80,6 +80,14 @@ export default function AgendaPage() {
   const noDate = userTasks.filter((t) => !t.dueDate && (preferences.showCompleted || t.status !== "done"));
   const tomorrowKey = toDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
 
+  const overdueCount = userTasks.filter(
+    (t) => isOverdue(t.dueDate) && t.status !== "done",
+  ).length;
+  const dueTodayCount = userTasks.filter(
+    (t) => t.dueDate === todayKey && t.status !== "done",
+  ).length;
+  const noDateCount = noDate.length;
+
   const getStatusLabel = (task: any) =>
     task?.statusLabel ?? columns.find((c) => c.id === task.status)?.title ?? "";
 
@@ -99,9 +107,51 @@ export default function AgendaPage() {
     <>
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-6xl mx-auto space-y-5">
-          <div>
-            <h1 className="font-display font-bold text-2xl text-slate-800 theme-dark:text-slate-100">Agenda</h1>
-            <p className="text-sm text-slate-400 theme-dark:text-slate-500 mt-1">Calendar-style view of your upcoming work.</p>
+          <div className="relative overflow-hidden rounded-3xl border border-white/70 theme-dark:border-slate-700/70 bg-white/70 theme-dark:bg-slate-800/70 backdrop-blur-xl p-6 shadow-card">
+            <div className="absolute -right-16 -top-14 h-36 w-36 rounded-full bg-brand-200/40 blur-3xl" />
+            <div className="absolute -left-12 bottom-0 h-28 w-28 rounded-full bg-amber-200/40 blur-3xl" />
+            <div className="relative">
+              <h1 className="font-display font-bold text-2xl text-slate-800 theme-dark:text-slate-100">Agenda</h1>
+              <p className="text-sm text-slate-500 theme-dark:text-slate-400 mt-1">
+                Track deadlines, spot overdue work, and keep the week balanced.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              {
+                label: "Due today",
+                value: dueTodayCount,
+                tone: "bg-amber-50/70 theme-dark:bg-amber-900/30 border-amber-100 theme-dark:border-amber-800/50",
+                text: "text-amber-600",
+              },
+              {
+                label: "Overdue",
+                value: overdueCount,
+                tone: "bg-red-50/70 theme-dark:bg-red-900/30 border-red-100 theme-dark:border-red-800/50",
+                text: "text-red-600",
+              },
+              {
+                label: "No due date",
+                value: noDateCount,
+                tone: "bg-slate-50/70 theme-dark:bg-slate-700/40 border-slate-200 theme-dark:border-slate-600",
+                text: "text-slate-600",
+              },
+            ].map((card) => (
+              <div
+                key={card.label}
+                className={cn(
+                  "rounded-2xl border px-4 py-4 bg-white/80 theme-dark:bg-slate-800/80 backdrop-blur-xl shadow-card",
+                  card.tone,
+                )}
+              >
+                <p className="text-xs uppercase tracking-wide text-slate-400 theme-dark:text-slate-500">
+                  {card.label}
+                </p>
+                <p className={cn("mt-2 text-2xl font-bold", card.text)}>{card.value}</p>
+              </div>
+            ))}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-5">
@@ -229,7 +279,7 @@ export default function AgendaPage() {
               {selectedTasks.length === 0 ? (
                 <div className="px-5 py-6 text-sm text-slate-400 theme-dark:text-slate-500">No tasks due on this date.</div>
               ) : (
-                <div className="divide-y divide-white/70 theme-dark:divide-slate-700/70">
+                <div className="divide-y divide-white/70 theme-dark:divide-slate-700/70 max-h-[520px] overflow-y-auto">
                   {selectedTasks.map((task) => (
                     <button
                       key={task.id}
@@ -248,8 +298,10 @@ export default function AgendaPage() {
                         </p>
                       </div>
                       <span className={cn(
-                        "text-xs font-medium",
-                        isOverdue(task.dueDate) ? "text-red-500" : "text-slate-400 theme-dark:text-slate-500"
+                        "text-xs font-medium px-2 py-0.5 rounded-full border",
+                        isOverdue(task.dueDate)
+                          ? "text-red-600 border-red-200 bg-red-50"
+                          : "text-slate-500 theme-dark:text-slate-400 border-slate-200 bg-white/70 theme-dark:bg-slate-800/70"
                       )}>
                         {getDueLabel(task.dueDate)}
                       </span>

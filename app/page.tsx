@@ -30,9 +30,9 @@ export default function Home() {
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
                 href="/board"
-                className="h-11 px-6 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors"
+                className="h-11 px-6 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors inline-flex items-center justify-center"
               >
-                Open app
+                Continue to Tasqon
               </Link>
               <button
                 type="button"
