@@ -92,7 +92,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "sidebar-transition flex flex-col h-full bg-white/60 backdrop-blur-xl border-r border-white/60 shadow-lg relative z-20 shrink-0",
+        "sidebar-transition flex flex-col h-full bg-gradient-to-b from-white/80 via-white/70 to-white/60 backdrop-blur-xl border-r border-white/70 shadow-lg relative z-20 shrink-0",
         collapsed ? "w-16" : "w-64",
       )}
       onClick={() => setOpenProjectMenu(null)}
@@ -104,11 +104,11 @@ export function Sidebar() {
           collapsed ? "justify-center" : "gap-3",
         )}
       >
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shrink-0 shadow-md">
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shrink-0 shadow-lg">
           <Zap className="w-4 h-4 text-white fill-white" />
         </div>
         {!collapsed && (
-          <span className="font-display font-bold text-slate-900 text-lg tracking-tight">
+          <span className="font-display font-bold bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 bg-clip-text text-transparent text-lg tracking-tight">
             Tasqon
           </span>
         )}
@@ -156,18 +156,20 @@ export function Sidebar() {
 
         {/* Projects section */}
         {!collapsed && (
-          <div className="pt-5 pb-2">
-            <div className="flex items-center justify-between px-2.5 mb-2">
-              <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
-                Projects
-              </span>
+          <div className="pt-6 pb-2">
+            <div className="flex items-center justify-between px-2.5 mb-3">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-widest bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Projects
+                </span>
+              </div>
               <button
                 onClick={() => setAddingProject(true)}
-                className="w-5 h-5 rounded-md bg-white/60 hover:bg-white/90 flex items-center justify-center transition-colors"
+                className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20 hover:from-blue-500/40 hover:to-purple-500/40 flex items-center justify-center transition-all border border-blue-200/50 hover:border-blue-300/50"
                 aria-label="Add project"
                 disabled={!isAuthenticated}
               >
-                <Plus className="w-3 h-3 text-slate-400" />
+                <Plus className="w-3.5 h-3.5 text-blue-600" />
               </button>
             </div>
             <div className="space-y-0.5">
@@ -241,20 +243,20 @@ export function Sidebar() {
                           }
                         }}
                         className={cn(
-                          "flex items-center gap-2.5 px-2.5 py-2 rounded-xl transition-all group",
+                          "flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl transition-all group duration-200",
                           isActive
-                            ? "bg-white/85 text-slate-900 shadow-sm"
-                            : "text-slate-500 hover:text-slate-800 hover:bg-white/70",
+                            ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-slate-900 shadow-sm border border-blue-200/50"
+                            : "text-slate-500 hover:text-slate-800 hover:bg-white/80 hover:shadow-sm border border-transparent hover:border-slate-200/50",
                         )}
                       >
-                        <span className="text-base leading-none">
+                        <span className="text-lg leading-none">
                           {project.emoji}
                         </span>
-                        <span className="text-sm font-medium truncate flex-1">
+                        <span className={cn("text-sm font-medium truncate flex-1", isActive && "font-semibold")}>
                           {project.name}
                         </span>
                         {isActive && (
-                          <Circle className="w-1.5 h-1.5 fill-brand-500 text-brand-500 shrink-0" />
+                          <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 shrink-0 shadow-sm" />
                         )}
                         {currentMemberRole === "owner" && (
                           <button
@@ -263,10 +265,10 @@ export function Sidebar() {
                               e.stopPropagation();
                               setOpenProjectMenu(menuOpen ? null : project.id);
                             }}
-                            className="w-5 h-5 rounded-md hover:bg-white/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                            className="w-6 h-6 rounded-lg hover:bg-white/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
                             aria-label={`Project options for ${project.name}`}
                           >
-                            <MoreVertical className="w-3 h-3 text-slate-400" />
+                            <MoreVertical className="w-4 h-4 text-slate-400" />
                           </button>
                         )}
                       </Link>
@@ -305,14 +307,14 @@ export function Sidebar() {
       {/* User avatar + collapse button */}
       <div
         className={cn(
-          "shrink-0 border-t border-white/70 p-3",
+          "shrink-0 border-t border-white/70 bg-gradient-to-b from-white/50 to-white/30 p-3",
           collapsed ? "flex justify-center" : "flex items-center gap-3",
         )}
       >
         {!collapsed && (
           <>
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 overflow-hidden"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 overflow-hidden ring-2 ring-white/80 shadow-md"
               style={{ backgroundColor: "#14b8a6" }}
             >
               {userAvatarUrl ? (
@@ -336,10 +338,10 @@ export function Sidebar() {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-800 truncate">
+              <p className="text-sm font-semibold text-slate-800 truncate">
                 {user?.user_metadata?.full_name ?? user?.email ?? "User"}
               </p>
-              <p className="text-xs text-slate-400 truncate">
+              <p className="text-xs text-slate-500 capitalize tracking-wider font-medium">
                 {user?.user_metadata?.role ?? "Member"}
               </p>
             </div>
@@ -347,13 +349,13 @@ export function Sidebar() {
         )}
         <button
           onClick={toggleSidebar}
-          className="w-7 h-7 rounded-lg bg-white/60 hover:bg-white/90 flex items-center justify-center transition-colors shrink-0"
+          className="w-7 h-7 rounded-lg bg-gradient-to-br from-white/60 to-white/40 hover:from-white/80 hover:to-white/60 flex items-center justify-center transition-all shrink-0 border border-white/70"
           aria-label="Toggle sidebar"
         >
           {collapsed ? (
-            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+            <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
           ) : (
-            <ChevronLeft className="w-3.5 h-3.5 text-slate-400" />
+            <ChevronLeft className="w-3.5 h-3.5 text-slate-600" />
           )}
         </button>
       </div>

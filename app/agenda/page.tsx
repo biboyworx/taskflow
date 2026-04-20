@@ -180,10 +180,10 @@ export default function AgendaPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-6 auto-rows-max">
             {/* Calendar */}
             <div className={cn(
-              "bg-white/80 theme-dark:bg-slate-800/80 backdrop-blur-xl border border-white/70 theme-dark:border-slate-700/70 shadow-lg rounded-2xl overflow-hidden transition-all hover:shadow-xl",
+              "bg-white/80 theme-dark:bg-slate-800/80 backdrop-blur-xl border border-white/70 theme-dark:border-slate-700/70 shadow-lg rounded-2xl overflow-visible transition-all hover:shadow-xl",
               preferences.enableAnimations && "animate-fade-up"
             )}
             style={preferences.enableAnimations ? { animationDelay: "0ms" } : undefined}>
@@ -304,7 +304,7 @@ export default function AgendaPage() {
             {/* Task List */}
             <div
               className={cn(
-                "bg-white/80 theme-dark:bg-slate-800/80 backdrop-blur-xl border border-white/70 theme-dark:border-slate-700/70 shadow-lg rounded-2xl overflow-hidden transition-all hover:shadow-xl",
+                "bg-white/80 theme-dark:bg-slate-800/80 backdrop-blur-xl border border-white/70 theme-dark:border-slate-700/70 shadow-lg rounded-2xl overflow-visible transition-all hover:shadow-xl",
                 preferences.enableAnimations && "animate-fade-up"
               )}
               style={preferences.enableAnimations ? { animationDelay: "80ms" } : undefined}
@@ -331,7 +331,7 @@ export default function AgendaPage() {
                   </p>
                 </div>
               ) : (
-                <div className="divide-y divide-white/70 theme-dark:divide-slate-700/70 max-h-[520px] overflow-y-auto">
+                <div className="divide-y divide-white/70 theme-dark:divide-slate-700/70 overflow-y-auto">
                   {selectedTasks.map((task, idx) => (
                     <button
                       key={task.id}

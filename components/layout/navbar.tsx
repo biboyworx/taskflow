@@ -514,29 +514,31 @@ export function Navbar() {
 
   return (
     <>
-      <header className="h-[60px] bg-white/70 backdrop-blur-xl border-b border-white/70 flex items-center px-5 gap-4 shrink-0 z-10 relative theme-dark:bg-slate-900/70 theme-dark:border-slate-800/70">
+      <header className="h-[60px] bg-gradient-to-r from-white/80 via-white/70 to-white/60 backdrop-blur-xl border-b border-white/80 flex items-center px-6 gap-5 shrink-0 z-10 relative theme-dark:from-slate-900/80 theme-dark:via-slate-900/70 theme-dark:to-slate-900/60 theme-dark:border-slate-800/80 shadow-sm">
         {/* Project name */}
-        <div className="flex items-center gap-2.5 mr-2 shrink-0">
-          <span className="text-xl">
-            {isAuthenticated ? (activeProject?.emoji ?? "📁") : "🔒"}
-          </span>
+        <div className="flex items-center gap-3 mr-2 shrink-0">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-200/50 shadow-sm">
+            <span className="text-lg">
+              {isAuthenticated ? (activeProject?.emoji ?? "📁") : "🔒"}
+            </span>
+          </div>
           <div>
-            <h1 className="font-display font-semibold text-slate-800 theme-dark:text-slate-100 text-[15px] leading-tight">
+            <h1 className="font-display font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent text-base leading-tight theme-dark:from-slate-100 theme-dark:via-slate-200 theme-dark:to-slate-100">
               {isAuthenticated
                 ? (activeProject?.name ?? "Project")
                 : "Sign in required"}
             </h1>
-            <p className="text-[11px] text-slate-400 theme-dark:text-slate-500 leading-tight">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 theme-dark:text-slate-400 leading-tight mt-0.5">
               Project Board
             </p>
           </div>
         </div>
 
-        <div className="w-px h-6 bg-slate-200/80 shrink-0" />
+        <div className="w-px h-7 bg-gradient-to-b from-slate-200/50 via-slate-300 to-slate-200/50 shrink-0" />
 
         {/* Search */}
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 theme-dark:text-slate-500" />
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 theme-dark:text-slate-500" />
           <input
             type="text"
             placeholder="Search tasks or projects…"
@@ -548,7 +550,7 @@ export function Navbar() {
             onFocus={() => {
               if (searchQuery) setShowSearchResults(true);
             }}
-            className="w-full h-8 pl-9 pr-3 rounded-lg bg-white/70 theme-dark:bg-slate-800/70 border border-white/70 theme-dark:border-slate-700/70 text-sm text-slate-700 theme-dark:text-slate-100 placeholder:text-slate-400 theme-dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-400/30 focus:border-brand-400 transition-all"
+            className="w-full h-9 pl-9 pr-3 rounded-lg bg-white/60 theme-dark:bg-slate-800/60 border border-white/80 theme-dark:border-slate-700/80 text-sm text-slate-700 theme-dark:text-slate-100 placeholder:text-slate-400 theme-dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/60 transition-all shadow-sm hover:border-slate-300/50 focus:shadow-md"
           />
           {searchQuery && (
             <button
@@ -564,21 +566,21 @@ export function Navbar() {
 
           {/* Search Results Dropdown */}
           {showSearchResults && projectSearchResults.length > 0 && (
-            <div className="absolute top-10 left-0 z-50 bg-white/90 theme-dark:bg-slate-800/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 theme-dark:border-slate-700/70 p-2 min-w-[240px] max-w-sm animate-scale-in">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 theme-dark:text-slate-500 px-2 py-1.5">
-                Projects
+            <div className="absolute top-10 left-0 z-50 bg-white/95 theme-dark:bg-slate-800/95 backdrop-blur-xl rounded-xl shadow-lg border border-white/70 theme-dark:border-slate-700/70 p-2 min-w-[260px] max-w-sm animate-scale-in">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 theme-dark:text-slate-400 px-3 py-2 border-b border-white/70 theme-dark:border-slate-700/70 mb-1">
+                🔍 Recent Projects
               </p>
               {projectSearchResults.map((project) => (
                 <button
                   key={project.id}
                   onClick={() => handleSelectProject(project.id)}
-                  className="flex items-center gap-2.5 w-full px-2 py-2 rounded-lg hover:bg-white/70 theme-dark:hover:bg-slate-700/70 text-sm text-slate-700 theme-dark:text-slate-200 transition-colors text-left"
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg hover:bg-white/80 theme-dark:hover:bg-slate-700/80 text-sm text-slate-700 theme-dark:text-slate-200 transition-colors text-left border border-transparent hover:border-white/70 theme-dark:hover:border-slate-700/70 duration-150"
                 >
-                  <span className="text-base">{project.emoji}</span>
+                  <span className="text-lg">{project.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{project.name}</p>
+                    <p className="font-semibold truncate">{project.name}</p>
                     {project.description && (
-                      <p className="text-xs text-slate-500 truncate">
+                      <p className="text-xs text-slate-500 theme-dark:text-slate-400 truncate">
                         {project.description}
                       </p>
                     )}
@@ -594,16 +596,16 @@ export function Navbar() {
           <button
             onClick={() => setShowFilter(!showFilter)}
             className={cn(
-              "flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm font-medium border transition-all",
+              "flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium border transition-all shadow-sm duration-200",
               filterPriority || filterArchived || filterAssignees.length > 0 || filterTags.length > 0
-                ? "bg-brand-50/80 border-brand-200 text-brand-700 theme-dark:bg-brand-900/50 theme-dark:border-brand-800/80 theme-dark:text-brand-300"
-                : "bg-white/70 theme-dark:bg-slate-800/70 border-white/70 theme-dark:border-slate-700/70 text-slate-600 theme-dark:text-slate-300 hover:bg-white/90 theme-dark:hover:bg-slate-700/90",
+                ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-blue-300/50 text-blue-700 theme-dark:from-blue-900/40 theme-dark:to-purple-900/40 theme-dark:border-blue-800/60 theme-dark:text-blue-300 shadow-md hover:shadow-lg"
+                : "bg-white/60 theme-dark:bg-slate-800/60 border-white/80 theme-dark:border-slate-700/80 text-slate-600 theme-dark:text-slate-300 hover:bg-white/80 theme-dark:hover:bg-slate-700/80 hover:shadow-md",
             )}
           >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <SlidersHorizontal className="w-4 h-4" />
             Filter
             {(filterPriority || filterArchived || filterAssignees.length > 0 || filterTags.length > 0) && (
-              <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-brand-500" />
+              <span className="ml-0.5 w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500" />
             )}
           </button>
 
@@ -725,33 +727,64 @@ export function Navbar() {
         <div className="relative">
           <button
             onClick={() => setShowThemeMenu(!showThemeMenu)}
-            className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm font-medium border bg-white/70 theme-dark:bg-slate-800/70 border-white/70 theme-dark:border-slate-700/70 text-slate-600 theme-dark:text-slate-300 hover:bg-white/90 theme-dark:hover:bg-slate-700/90 transition-all"
+            className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-medium border bg-white/60 theme-dark:bg-slate-800/60 border-white/80 theme-dark:border-slate-700/80 text-slate-600 theme-dark:text-slate-300 hover:bg-white/80 theme-dark:hover:bg-slate-700/80 transition-all shadow-sm hover:shadow-md"
           >
-            <Palette className="w-3.5 h-3.5" />
+            <Palette className="w-4 h-4" />
             Theme
           </button>
 
           {showThemeMenu && (
-            <div className="absolute top-10 left-0 z-50 bg-white/90 theme-dark:bg-slate-800/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 theme-dark:border-slate-700/70 p-2 min-w-[160px] animate-scale-in">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 theme-dark:text-slate-500 px-2 py-1.5">
-                Theme
+            <div className="absolute top-10 left-0 z-50 bg-white/95 theme-dark:bg-slate-800/95 backdrop-blur-xl rounded-xl shadow-lg border border-white/70 theme-dark:border-slate-700/70 p-3 min-w-[240px] animate-scale-in">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 theme-dark:text-slate-400 px-2 py-2 border-b border-white/70 theme-dark:border-slate-700/70 mb-2">
+                🎨 Choose Theme
               </p>
-              {THEME_OPTIONS.map((t) => (
-                <button
-                  key={t.value}
-                  onClick={() => {
-                    updatePreferences({ theme: t.value as any });
-                    setShowThemeMenu(false);
-                  }}
-                  className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-lg hover:bg-white/70 theme-dark:hover:bg-slate-700/70 text-sm text-slate-700 theme-dark:text-slate-200 transition-colors"
-                >
-                  <span className="text-base">{t.icon}</span>
-                  {t.label}
-                  {preferences.theme === t.value && (
-                    <Check className="w-3.5 h-3.5 text-brand-500 ml-auto" />
-                  )}
-                </button>
-              ))}
+              <div className="space-y-2">
+                {THEME_OPTIONS.map((t) => {
+                  const isSelected = preferences.theme === t.value;
+                  const previewColors = {
+                    mist: "from-[#f7f4ef] via-white to-[#f0f9f8]",
+                    linen: "from-[#fef5e7] via-white to-[#ffe8cc]",
+                    dark: "from-slate-900 via-slate-800 to-slate-900",
+                  };
+                  return (
+                    <button
+                      key={t.value}
+                      onClick={() => {
+                        updatePreferences({ theme: t.value as any });
+                        setShowThemeMenu(false);
+                      }}
+                      className={cn(
+                        "w-full flex flex-col gap-2 p-3 rounded-lg transition-all duration-200 border-2",
+                        isSelected
+                          ? "border-blue-500 bg-blue-50/50 theme-dark:bg-blue-900/20"
+                          : "border-transparent hover:border-slate-300 theme-dark:hover:border-slate-600 bg-white/50 theme-dark:bg-slate-700/30 hover:bg-white/80 theme-dark:hover:bg-slate-700/50",
+                      )}
+                    >
+                      {/* Preview */}
+                      <div className={cn("h-12 rounded-lg shadow-sm border border-white/50 bg-gradient-to-r", previewColors[t.value as keyof typeof previewColors])} />
+                      
+                      {/* Label and description */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="text-left flex-1">
+                          <p className={cn("font-semibold text-sm", isSelected ? "text-blue-700 theme-dark:text-blue-300" : "text-slate-800 theme-dark:text-slate-200")}>
+                            {t.label}
+                          </p>
+                          <p className="text-xs text-slate-500 theme-dark:text-slate-400">
+                            {t.value === "mist" && "Light & airy"}
+                            {t.value === "linen" && "Warm & cozy"}
+                            {t.value === "dark" && "Dark mode"}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 mt-0.5">
+                            <Check className="w-3 h-3 text-white" />
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -760,13 +793,13 @@ export function Navbar() {
 
         {/* Members */}
         {isAuthenticated && (
-          <div className="flex items-center -space-x-2 relative">
+          <div className="flex items-center -space-x-2.5 relative pl-2 border-l border-slate-200/50 theme-dark:border-slate-700/50">
             {members.slice(0, 4).map((m) => (
               <div key={m.id} className="relative">
                 <button
                   onClick={() => setSelectedMemberMenu(selectedMemberMenu === m.id ? null : m.id)}
                   title={m.name}
-                  className="w-7 h-7 rounded-full ring-2 ring-white shrink-0 cursor-pointer hover:scale-110 transition-transform overflow-hidden flex items-center justify-center text-[11px] font-bold text-white"
+                  className="w-8 h-8 rounded-full ring-2 ring-white theme-dark:ring-slate-800 shrink-0 cursor-pointer hover:scale-110 transition-transform overflow-hidden flex items-center justify-center text-[11px] font-bold text-white shadow-md hover:shadow-lg"
                   style={{ backgroundColor: m.color }}
                 >
                   {m.avatar ? (
@@ -838,7 +871,7 @@ export function Navbar() {
               </div>
             ))}
             {members.length > 4 && (
-              <div className="w-7 h-7 rounded-full bg-surface-100 flex items-center justify-center text-[11px] font-bold text-slate-500 ring-2 ring-white">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-[11px] font-bold text-slate-600 ring-2 ring-white theme-dark:ring-slate-800 shadow-md">
                 +{members.length - 4}
               </div>
             )}
@@ -849,31 +882,97 @@ export function Navbar() {
           <div className="relative">
             <button
               onClick={() => setShowInvite(!showInvite)}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm font-medium bg-brand-500 text-white hover:bg-brand-600 transition-colors shadow-sm"
+              className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-sm font-semibold bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md hover:shadow-lg"
             >
-              <UserPlus className="w-3.5 h-3.5" />
+              <UserPlus className="w-4 h-4" />
               Invite
             </button>
             {showInvite && (
-              <div className="absolute top-10 right-0 z-50 bg-white/90 theme-dark:bg-slate-800/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 theme-dark:border-slate-700/70 p-4 w-72 animate-scale-in">
-                <p className="font-display font-semibold text-slate-800 theme-dark:text-slate-100 text-sm mb-3">
-                  Invite to project
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    type="email"
-                    placeholder="Enter email address"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    className="flex-1 h-8 px-3 rounded-lg bg-white/70 theme-dark:bg-slate-700/70 border border-white/70 theme-dark:border-slate-700/70 text-sm text-slate-700 theme-dark:text-slate-100 placeholder:text-slate-400 theme-dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-400/30 focus:border-brand-400 transition-all"
-                  />
-                  <button
-                    onClick={handleInvite}
-                    disabled={isInviteSending}
-                    className="h-8 px-3 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {isInviteSending ? "Sending..." : "Send"}
-                  </button>
+              <div className="absolute top-10 right-0 z-50 bg-white/95 theme-dark:bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-lg border border-white/70 theme-dark:border-slate-700/70 overflow-hidden w-96 animate-scale-in">
+                {/* Header with gradient */}
+                <div className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-5 py-4">
+                  <h3 className="font-display font-bold text-white text-base flex items-center gap-2">
+                    <UserPlus className="w-4 h-4" />
+                    Invite Team Member
+                  </h3>
+                  <p className="text-sm text-emerald-50/80 mt-1">Invite people to collaborate on {activeProject?.name}</p>
+                </div>
+
+                {/* Content */}
+                <div className="p-5 space-y-4">
+                  {/* Email Input */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-slate-600 theme-dark:text-slate-300 uppercase tracking-widest">
+                      Email Address
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        placeholder="name@example.com"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !isInviteSending) {
+                            handleInvite();
+                          }
+                        }}
+                        disabled={isInviteSending}
+                        className="flex-1 h-9 px-3 rounded-lg bg-slate-50 theme-dark:bg-slate-700/50 border border-slate-200 theme-dark:border-slate-600 text-sm text-slate-800 theme-dark:text-slate-100 placeholder:text-slate-400 theme-dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 transition-all disabled:opacity-50"
+                      />
+                      <button
+                        onClick={handleInvite}
+                        disabled={isInviteSending || !inviteEmail.trim()}
+                        className="h-9 px-4 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {isInviteSending ? "Sending..." : "Send"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Team Members Preview */}
+                  {projectMembers.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t border-slate-200 theme-dark:border-slate-700">
+                      <p className="text-xs font-semibold text-slate-600 theme-dark:text-slate-300 uppercase tracking-widest">
+                        Team Members ({projectMembers.length})
+                      </p>
+                      <div className="flex flex-wrap gap-2 max-h-20 overflow-y-auto">
+                        {projectMembers.map((member) => (
+                          <div
+                            key={member.id}
+                            title={member.name}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 theme-dark:bg-slate-700/50 border border-slate-200 theme-dark:border-slate-600"
+                          >
+                            <div
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 overflow-hidden"
+                              style={{ backgroundColor: member.color }}
+                            >
+                              {member.avatar ? (
+                                <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
+                              ) : (
+                                member.initials
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-slate-700 theme-dark:text-slate-200 truncate">
+                                {member.name}
+                              </p>
+                              <p className="text-[10px] text-slate-500 theme-dark:text-slate-400 capitalize">
+                                {member.role}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Info note */}
+                  <div className="flex gap-2 p-3 rounded-lg bg-blue-50 theme-dark:bg-blue-900/20 border border-blue-200 theme-dark:border-blue-800/50">
+                    <Check className="w-4 h-4 text-blue-600 theme-dark:text-blue-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-blue-700 theme-dark:text-blue-300">
+                      Invite links expire after 7 days. The invite will be sent to the provided email address.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -884,9 +983,9 @@ export function Navbar() {
         {!isAuthenticated && (
           <button
             onClick={() => setShowAuthModal(true)}
-            className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm font-medium bg-white/80 theme-dark:bg-slate-800/70 border border-white/70 theme-dark:border-slate-700/70 text-slate-600 theme-dark:text-slate-300 hover:bg-white theme-dark:hover:bg-slate-700/90 transition-colors"
+            className="flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 transition-all shadow-md hover:shadow-lg"
           >
-            <User className="w-3.5 h-3.5" />
+            <User className="w-4 h-4" />
             Sign in
           </button>
         )}
@@ -896,10 +995,10 @@ export function Navbar() {
           <div className="relative">
             <button 
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative w-8 h-8 rounded-lg bg-white/70 theme-dark:bg-slate-800/70 border border-white/70 theme-dark:border-slate-700/70 flex items-center justify-center hover:bg-white/90 theme-dark:hover:bg-slate-700/90 transition-colors">
+              className="relative w-9 h-9 rounded-lg bg-white/60 theme-dark:bg-slate-800/60 border border-white/80 theme-dark:border-slate-700/80 flex items-center justify-center hover:bg-white/80 theme-dark:hover:bg-slate-700/80 transition-all shadow-sm hover:shadow-md">
               <Bell className="w-4 h-4 text-slate-500 theme-dark:text-slate-400" />
               {activities.length > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500" />
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-gradient-to-r from-red-500 to-pink-500 shadow-md" />
               )}
             </button>
             
@@ -945,10 +1044,10 @@ export function Navbar() {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 h-8 px-2.5 rounded-lg hover:bg-white/70 theme-dark:hover:bg-slate-700/70 border border-transparent hover:border-white/70 theme-dark:hover:border-slate-700/70 transition-all"
+              className="flex items-center gap-2.5 h-9 px-2.5 rounded-lg hover:bg-white/80 theme-dark:hover:bg-slate-700/80 border border-transparent hover:border-white/80 theme-dark:hover:border-slate-700/80 transition-all shadow-sm hover:shadow-md"
             >
               <div
-                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white overflow-hidden"
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white overflow-hidden ring-1 ring-white/50 shadow-sm"
                 style={{ backgroundColor: "#14b8a6" }}
               >
                 {userAvatarUrl ? (
@@ -965,14 +1064,13 @@ export function Navbar() {
                   userInitials
                 )}
               </div>
-              <ChevronDown className="w-3 h-3 text-slate-400 theme-dark:text-slate-500" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 theme-dark:text-slate-500" />
             </button>
             {showUserMenu && (
-              <div className="absolute top-10 right-0 z-50 bg-white/90 theme-dark:bg-slate-800/90 backdrop-blur-xl rounded-xl shadow-modal border border-white/70 theme-dark:border-slate-700/70 p-2 min-w-[180px] animate-scale-in">
-                <div className="px-2.5 py-2">
-                  <p className="text-xs text-slate-400 theme-dark:text-slate-500">Signed in as</p>
-                  <p className="text-sm font-semibold text-slate-800 theme-dark:text-slate-100 truncate">
-                    {userEmail}
+              <div className="absolute top-10 right-0 z-50 bg-white/95 theme-dark:bg-slate-800/95 backdrop-blur-xl rounded-xl shadow-lg border border-white/70 theme-dark:border-slate-700/70 p-2 min-w-[200px] animate-scale-in">
+                <div className="px-3 py-2.5 border-b border-white/70 theme-dark:border-slate-700/70 mb-2">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 theme-dark:text-slate-500 mb-1">Signed in as</p>
+                  <p className="text-sm font-semibold text-slate-800 theme-dark:text-slate-100 truncate break-all\">\n                    {userEmail}
                   </p>
                 </div>
                 <div className="h-px bg-white/70 theme-dark:bg-slate-700/70 my-1" />
@@ -981,9 +1079,9 @@ export function Navbar() {
                     await signOut();
                     setShowUserMenu(false);
                   }}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm text-slate-700 theme-dark:text-slate-300 hover:bg-white/70 theme-dark:hover:bg-slate-700/70 transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 theme-dark:hover:bg-red-900/20 transition-colors"
                 >
-                  <LogOut className="w-4 h-4 text-slate-400 theme-dark:text-slate-500" />
+                  <LogOut className="w-4 h-4" />
                   Sign out
                 </button>
               </div>
