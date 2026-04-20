@@ -946,8 +946,8 @@ export function Navbar() {
                               className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 overflow-hidden"
                               style={{ backgroundColor: member.color }}
                             >
-                              {member.avatar ? (
-                                <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
+                              {member.avatarUrl ? (
+                                <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
                               ) : (
                                 member.initials
                               )}
