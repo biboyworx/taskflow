@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/utils/supabase/server";
+import { optimizeAvatarUrl } from "@/lib/utils";
 
 // Helper to derive initials from name or email
 function deriveInitials(name?: string | null, email?: string | null) {
@@ -20,7 +21,10 @@ async function ensureProfile(
   user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }
 ) {
   const fullName = (user.user_metadata?.full_name as string | undefined) ?? null;
-  const avatarUrl = (user.user_metadata?.avatar_url as string | undefined) ?? null;
+  const avatarUrl = optimizeAvatarUrl(
+    (user.user_metadata?.avatar_url as string | undefined) ?? null,
+    64,
+  );
   const initials = deriveInitials(fullName, user.email ?? null);
 
   const { error } = await supabase

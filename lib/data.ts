@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { DEFAULT_COLUMNS, getColumnTheme } from "@/lib/utils";
+import { DEFAULT_COLUMNS, getColumnTheme, optimizeAvatarUrl } from "@/lib/utils";
 import type {
   ActivityItem,
   Attachment,
@@ -26,9 +26,13 @@ type ProfileRow = {
   role: string | null;
 };
 
+const PROFILE_CACHE_TTL_MS = 2 * 60 * 1000;
+const profileCache = new Map<string, { value: ProfileRow; expiresAt: number }>();
+const profileInFlight = new Map<string, Promise<ProfileRow>>();
+
 async function ensureProfile(user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }) {
   const fullName = (user.user_metadata?.full_name as string | undefined) ?? null;
-  const avatarUrl = (user.user_metadata?.avatar_url as string | undefined) ?? null;
+  const avatarUrl = optimizeAvatarUrl((user.user_metadata?.avatar_url as string | undefined) ?? null);
   const initials = deriveInitials(fullName, user.email ?? null);
 
   const { error } = await supabase
@@ -60,7 +64,7 @@ function mapProfileToMember(profile: ProfileRow): Member {
   return {
     id: profile.id,
     name: profile.full_name || profile.email?.split("@")[0] || "User",
-    avatar: profile.avatar_url || "",
+    avatar: optimizeAvatarUrl(profile.avatar_url) || "",
     color: profile.color || "#14b8a6",
     role: profile.role || "Member",
     initials: profile.initials || deriveInitials(profile.full_name, profile.email),
@@ -68,6 +72,18 @@ function mapProfileToMember(profile: ProfileRow): Member {
 }
 
 export async function fetchUserProfile(userId: string) {
+  const now = Date.now();
+  const cached = profileCache.get(userId);
+  if (cached && cached.expiresAt > now) {
+    return cached.value;
+  }
+
+  const inFlight = profileInFlight.get(userId);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const request = (async () => {
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
@@ -75,7 +91,20 @@ export async function fetchUserProfile(userId: string) {
     .single();
 
   if (error) throw error;
-  return data as ProfileRow;
+  const profile = data as ProfileRow;
+  profileCache.set(userId, {
+    value: profile,
+    expiresAt: Date.now() + PROFILE_CACHE_TTL_MS,
+  });
+  return profile;
+  })();
+
+  profileInFlight.set(userId, request);
+  try {
+    return await request;
+  } finally {
+    profileInFlight.delete(userId);
+  }
 }
 
 export async function fetchMember(userId: string): Promise<Member> {

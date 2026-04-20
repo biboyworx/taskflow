@@ -6,7 +6,7 @@ import {
   MessageSquare, Paperclip, Calendar, CheckSquare,
   GripVertical
 } from "lucide-react";
-import { cn, formatDate, isOverdue, isDueSoon, PRIORITY_CONFIG, getChecklistProgress } from "@/lib/utils";
+import { cn, formatDate, isOverdue, isDueSoon, PRIORITY_CONFIG, getChecklistProgress, optimizeAvatarUrl } from "@/lib/utils";
 import { Task } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
 
@@ -149,7 +149,13 @@ export function TaskCard({ task, overlay }: TaskCardProps) {
                 style={{ backgroundColor: a.color, boxShadow: "0 0 0 1.5px white" }}
               >
                 {a.avatar ? (
-                  <img src={a.avatar} alt={a.name} className="w-full h-full object-cover" />
+                  <img
+                    src={optimizeAvatarUrl(a.avatar, 48) || a.avatar}
+                    alt={a.name}
+                    decoding="async"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   a.initials
                 )}

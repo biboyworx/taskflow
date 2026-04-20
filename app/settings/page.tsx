@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { User, SlidersHorizontal, ShieldCheck, Calendar, RefreshCw } from "lucide-react";
+import { User, SlidersHorizontal, ShieldCheck, Calendar, RefreshCw, Palette } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -143,254 +143,239 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
+    <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-br from-slate-50 via-white to-slate-50 theme-dark:from-slate-950 theme-dark:via-slate-900 theme-dark:to-slate-950">
       <div className="max-w-5xl mx-auto space-y-6">
-        <div className="relative overflow-hidden rounded-3xl border border-white/70 bg-white/70 backdrop-blur-xl p-6 shadow-card">
-          <div className="absolute -right-14 -top-16 h-32 w-32 rounded-full bg-brand-200/40 blur-3xl" />
-          <div className="absolute -left-12 bottom-0 h-28 w-28 rounded-full bg-amber-200/40 blur-3xl" />
-          <div className="relative flex flex-col gap-3">
-            <h1 className="font-display font-bold text-2xl text-slate-800">Settings</h1>
-            <p className="text-sm text-slate-500">
-              Personalize your workspace, manage integrations, and keep your account in sync.
-            </p>
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-3xl border border-white/70 theme-dark:border-slate-700/70 bg-gradient-to-br from-white via-cyan-50/30 to-white theme-dark:from-slate-800 theme-dark:via-slate-800/50 theme-dark:to-slate-800 backdrop-blur-xl p-8 shadow-lg">
+          <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-gradient-to-br from-cyan-200/30 to-blue-200/20 blur-3xl" />
+          <div className="relative flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white">
+              <SlidersHorizontal className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="font-display font-bold text-3xl text-slate-900 theme-dark:text-slate-100">
+                Settings
+              </h1>
+              <p className="text-slate-600 theme-dark:text-slate-400 mt-1">
+                Personalize your workspace and manage integrations
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Account</h2>
-          <span className="text-xs text-slate-400">Profile & session</span>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="bg-white/80 backdrop-blur-xl border border-white/70 shadow-card rounded-3xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-white/70 border border-white/70 flex items-center justify-center">
-                <User className="w-4 h-4 text-brand-500" />
+        {/* Account Section */}
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 theme-dark:text-slate-400 mb-4">Account</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Profile Card */}
+            <div className="rounded-2xl border border-white/70 theme-dark:border-slate-700/70 bg-white/80 theme-dark:bg-slate-800/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden">
+              <div className="px-6 py-5 border-b border-white/70 theme-dark:border-slate-700/70 bg-gradient-to-br from-white/50 to-transparent theme-dark:from-slate-700/50 dark:to-transparent flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white shadow-md">
+                  <User className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 theme-dark:text-slate-100">Profile</h3>
+                  <p className="text-xs text-slate-500 theme-dark:text-slate-400">Update your account details</p>
+                </div>
               </div>
-              <div>
-                <h2 className="font-display font-semibold text-slate-800">Profile</h2>
-                <p className="text-xs text-slate-400">Manage your personal details.</p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-slate-500">Name</label>
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full h-9 mt-1 px-3 rounded-lg bg-white/70 border border-white/70 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/30"
-                  disabled={!isAuthenticated || isLoading || isSaving}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-slate-500">Email</label>
-                <input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-9 mt-1 px-3 rounded-lg bg-white/70 border border-white/70 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/30"
-                  disabled={!isAuthenticated || isLoading || isSaving}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleSave}
-                  className="h-8 px-3 rounded-lg bg-brand-500 text-white text-xs font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={!isAuthenticated || isLoading || isSaving}
-                >
-                  {isSaving ? "Saving..." : "Save changes"}
-                </button>
-                {saved && <span className="text-xs text-emerald-500">Saved</span>}
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white/80 backdrop-blur-xl border border-white/70 shadow-card rounded-3xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-white/70 border border-white/70 flex items-center justify-center">
-                <SlidersHorizontal className="w-4 h-4 text-brand-500" />
-              </div>
-              <div>
-                <h2 className="font-display font-semibold text-slate-800">Preferences</h2>
-                <p className="text-xs text-slate-400">Tune your workspace experience.</p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="rounded-xl border border-white/70 bg-white/70 px-3 py-2.5">
-                <label className="text-xs text-slate-500">Theme</label>
-                <select
-                  value={preferences.theme}
-                  onChange={(e) =>
-                    updatePreferences({
-                      theme: e.target.value as typeof preferences.theme,
-                    })
-                  }
-                  className="w-full h-9 mt-1 px-3 rounded-lg bg-white/70 border border-white/70 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/30"
-                >
-                  <option value="mist">Mist (light, airy)</option>
-                  <option value="linen">Linen (warm light)</option>
-                  <option value="dark">Midnight (dark)</option>
-                </select>
-              </div>
-              {[
-                {
-                  id: "compactMode" as const,
-                  label: "Compact board spacing",
-                  description: "Reduce padding and gaps in the Project board.",
-                },
-                {
-                  id: "showCompleted" as const,
-                  label: "Show completed tasks",
-                  description: "Include tasks in the Done column and agenda.",
-                },
-                {
-                  id: "weekStartsOnMonday" as const,
-                  label: "Week starts on Monday",
-                  description: "Use Monday as the first day in Agenda.",
-                },
-                {
-                  id: "enableAnimations" as const,
-                  label: "Enable animations",
-                  description: "Turn on subtle UI motion.",
-                },
-              ].map((item) => (
-                <label
-                  key={item.id}
-                  className="flex items-start gap-3 rounded-xl border border-white/70 bg-white/70 px-3 py-2.5 cursor-pointer hover:bg-white/80 transition-colors"
-                >
+              <div className="px-6 py-5 space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 theme-dark:text-slate-300">Name</label>
                   <input
-                    type="checkbox"
-                    checked={(preferences[item.id] as boolean) ?? false}
-                    onChange={(e) => {
-                      updatePreferences({ [item.id]: e.target.checked });
-                    }}
-                    className="mt-1 cursor-pointer"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full h-10 mt-2 px-4 rounded-lg bg-white/70 theme-dark:bg-slate-700/70 border border-white/70 theme-dark:border-slate-700/70 text-sm text-slate-900 theme-dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/30 transition-all"
+                    disabled={!isAuthenticated || isLoading || isSaving}
                   />
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">{item.label}</p>
-                    <p className="text-xs text-slate-400">{item.description}</p>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Integrations</h2>
-          <span className="text-xs text-slate-400">Calendar sync</span>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-xl border border-white/70 shadow-card rounded-3xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-9 h-9 rounded-xl bg-white/70 border border-white/70 flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-brand-500" />
-            </div>
-            <div>
-              <h2 className="font-display font-semibold text-slate-800">Google Calendar</h2>
-              <p className="text-xs text-slate-400">Manage reminders and manual sync.</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-xl border border-white/70 bg-white/70 px-3 py-2.5">
-              <label className="text-xs text-slate-500">Popup reminder</label>
-              <select
-                value={popupMinutes === null ? "off" : String(popupMinutes)}
-                onChange={(e) => {
-                  const value = e.target.value === "off" ? null : Number(e.target.value);
-                  setPopupMinutes(Number.isNaN(value as number) ? null : (value as number | null));
-                }}
-                className="w-full h-9 mt-1 px-3 rounded-lg bg-white/70 border border-white/70 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/30"
-                disabled={!calendarReady || !isAuthenticated}
-              >
-                {reminderOptions.map((option) => (
-                  <option
-                    key={option.label}
-                    value={option.value === null ? "off" : String(option.value)}
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 theme-dark:text-slate-300">Email</label>
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full h-10 mt-2 px-4 rounded-lg bg-white/70 theme-dark:bg-slate-700/70 border border-white/70 theme-dark:border-slate-700/70 text-sm text-slate-900 theme-dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/30 transition-all"
+                    disabled={!isAuthenticated || isLoading || isSaving}
+                  />
+                </div>
+                <div className="flex items-center gap-2 pt-2">
+                  <button
+                    onClick={handleSave}
+                    className="h-9 px-4 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs font-semibold hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!isAuthenticated || isLoading || isSaving}
                   >
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                    {isSaving ? "Saving..." : "Save changes"}
+                  </button>
+                  {saved && <span className="text-xs font-medium text-emerald-500">✓ Saved</span>}
+                </div>
+              </div>
             </div>
 
-            <div className="rounded-xl border border-white/70 bg-white/70 px-3 py-2.5">
-              <label className="text-xs text-slate-500">Email reminder</label>
-              <select
-                value={emailMinutes === null ? "off" : String(emailMinutes)}
-                onChange={(e) => {
-                  const value = e.target.value === "off" ? null : Number(e.target.value);
-                  setEmailMinutes(Number.isNaN(value as number) ? null : (value as number | null));
-                }}
-                className="w-full h-9 mt-1 px-3 rounded-lg bg-white/70 border border-white/70 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400/30"
-                disabled={!calendarReady || !isAuthenticated}
-              >
-                {reminderOptions.map((option) => (
-                  <option
-                    key={option.label}
-                    value={option.value === null ? "off" : String(option.value)}
+            {/* Preferences Card */}
+            <div className="rounded-2xl border border-white/70 theme-dark:border-slate-700/70 bg-white/80 theme-dark:bg-slate-800/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden">
+              <div className="px-6 py-5 border-b border-white/70 theme-dark:border-slate-700/70 bg-gradient-to-br from-white/50 to-transparent theme-dark:from-slate-700/50 dark:to-transparent flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white shadow-md">
+                  <Palette className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 theme-dark:text-slate-100">Preferences</h3>
+                  <p className="text-xs text-slate-500 theme-dark:text-slate-400">Customize your experience</p>
+                </div>
+              </div>
+              <div className="px-6 py-5 space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 theme-dark:text-slate-300">Theme</label>
+                  <select
+                    value={preferences.theme}
+                    onChange={(e) =>
+                      updatePreferences({
+                        theme: e.target.value as typeof preferences.theme,
+                      })
+                    }
+                    className="w-full h-10 mt-2 px-4 rounded-lg bg-white/70 theme-dark:bg-slate-700/70 border border-white/70 theme-dark:border-slate-700/70 text-sm text-slate-900 theme-dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-400/30 transition-all"
                   >
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                    <option value="mist">Mist (Light, airy)</option>
+                    <option value="linen">Linen (Warm light)</option>
+                    <option value="dark">Midnight (Dark)</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { id: "compactMode" as const, label: "Compact board", icon: "▬" },
+                    { id: "showCompleted" as const, label: "Show completed", icon: "✓" },
+                    { id: "weekStartsOnMonday" as const, label: "Monday first", icon: "📅" },
+                    { id: "enableAnimations" as const, label: "Animations", icon: "✨" },
+                  ].map((item) => (
+                    <label
+                      key={item.id}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-white/70 theme-dark:border-slate-700/70 hover:bg-white/50 theme-dark:hover:bg-slate-700/50 cursor-pointer transition-colors group"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={(preferences[item.id] as boolean) ?? false}
+                        onChange={(e) => {
+                          updatePreferences({ [item.id]: e.target.checked });
+                        }}
+                        className="w-4 h-4 cursor-pointer rounded accent-purple-500"
+                      />
+                      <span className="text-sm font-medium text-slate-700 theme-dark:text-slate-200">{item.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-4">
-            <button
-              onClick={handleSaveCalendarSettings}
-              className="h-8 px-3 rounded-lg bg-brand-500 text-white text-xs font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!isAuthenticated || !calendarReady || calendarSaving}
-            >
-              {calendarSaving ? "Saving..." : "Save reminder settings"}
-            </button>
-            <button
-              onClick={handleManualSync}
-              className="h-8 px-3 rounded-lg text-xs font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
-              disabled={!isAuthenticated || calendarSyncing}
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              {calendarSyncing ? "Syncing..." : "Sync Google Calendar"}
-            </button>
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Security</h2>
-          <span className="text-xs text-slate-400">Session control</span>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-xl border border-white/70 shadow-card rounded-3xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-9 h-9 rounded-xl bg-white/70 border border-white/70 flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4 text-brand-500" />
+        {/* Integrations Section */}
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 theme-dark:text-slate-400 mb-4">Integrations</h2>
+          <div className="rounded-2xl border border-white/70 theme-dark:border-slate-700/70 bg-white/80 theme-dark:bg-slate-800/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden">
+            <div className="px-6 py-5 border-b border-white/70 theme-dark:border-slate-700/70 bg-gradient-to-br from-white/50 to-transparent theme-dark:from-slate-700/50 dark:to-transparent flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white shadow-md">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 theme-dark:text-slate-100">Google Calendar</h3>
+                <p className="text-xs text-slate-500 theme-dark:text-slate-400">Manage calendar reminders and sync</p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-display font-semibold text-slate-800">Session</h2>
-              <p className="text-xs text-slate-400">Manage your current session.</p>
+            <div className="px-6 py-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 theme-dark:text-slate-300">Popup reminder</label>
+                  <select
+                    value={popupMinutes === null ? "off" : String(popupMinutes)}
+                    onChange={(e) => {
+                      const value = e.target.value === "off" ? null : Number(e.target.value);
+                      setPopupMinutes(Number.isNaN(value as number) ? null : (value as number | null));
+                    }}
+                    className="w-full h-10 mt-2 px-4 rounded-lg bg-white/70 theme-dark:bg-slate-700/70 border border-white/70 theme-dark:border-slate-700/70 text-sm text-slate-900 theme-dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-red-400/30 transition-all"
+                    disabled={!calendarReady || !isAuthenticated}
+                  >
+                    {reminderOptions.map((option) => (
+                      <option
+                        key={option.label}
+                        value={option.value === null ? "off" : String(option.value)}
+                      >
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-600 theme-dark:text-slate-300">Email reminder</label>
+                  <select
+                    value={emailMinutes === null ? "off" : String(emailMinutes)}
+                    onChange={(e) => {
+                      const value = e.target.value === "off" ? null : Number(e.target.value);
+                      setEmailMinutes(Number.isNaN(value as number) ? null : (value as number | null));
+                    }}
+                    className="w-full h-10 mt-2 px-4 rounded-lg bg-white/70 theme-dark:bg-slate-700/70 border border-white/70 theme-dark:border-slate-700/70 text-sm text-slate-900 theme-dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-red-400/30 transition-all"
+                    disabled={!calendarReady || !isAuthenticated}
+                  >
+                    {reminderOptions.map((option) => (
+                      <option
+                        key={option.label}
+                        value={option.value === null ? "off" : String(option.value)}
+                      >
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <button
+                  onClick={handleSaveCalendarSettings}
+                  className="h-9 px-4 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-semibold hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!isAuthenticated || !calendarReady || calendarSaving}
+                >
+                  {calendarSaving ? "Saving..." : "Save reminder settings"}
+                </button>
+                <button
+                  onClick={handleManualSync}
+                  className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-white/70 theme-dark:bg-slate-700/70 border border-white/70 theme-dark:border-slate-700/70 text-sm font-semibold text-slate-700 theme-dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!isAuthenticated || calendarSyncing}
+                >
+                  <RefreshCw className={cn("w-4 h-4", calendarSyncing && "animate-spin")} />
+                  {calendarSyncing ? "Syncing..." : "Sync calendar"}
+                </button>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <p className="text-sm text-slate-700">Signed in as</p>
-              <p className="text-xs text-slate-400">{user?.email ?? "Not signed in"}</p>
+        {/* Security Section */}
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 theme-dark:text-slate-400 mb-4">Security</h2>
+          <div className="rounded-2xl border border-white/70 theme-dark:border-slate-700/70 bg-white/80 theme-dark:bg-slate-800/80 backdrop-blur-xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden">
+            <div className="px-6 py-5 border-b border-white/70 theme-dark:border-slate-700/70 bg-gradient-to-br from-white/50 to-transparent theme-dark:from-slate-700/50 dark:to-transparent flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white shadow-md">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 theme-dark:text-slate-100">Session</h3>
+                <p className="text-xs text-slate-500 theme-dark:text-slate-400">Manage your account access</p>
+              </div>
             </div>
-            <button
-              onClick={signOut}
-              className={cn(
-                "h-8 px-3 rounded-lg text-xs font-medium border transition-colors",
-                isAuthenticated
-                  ? "border-red-200 text-red-600 hover:bg-red-50"
-                  : "border-slate-200 text-slate-400 cursor-not-allowed"
-              )}
-              disabled={!isAuthenticated}
-            >
-              Sign out
-            </button>
+            <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-slate-700 theme-dark:text-slate-200">Signed in as</p>
+                <p className="text-xs text-slate-500 theme-dark:text-slate-400 mt-1">{user?.email ?? "Not signed in"}</p>
+              </div>
+              <button
+                onClick={signOut}
+                className={cn(
+                  "h-9 px-4 rounded-lg text-xs font-semibold border transition-all",
+                  isAuthenticated
+                    ? "border-red-200 theme-dark:border-red-900/50 text-red-600 theme-dark:text-red-400 hover:bg-red-50 theme-dark:hover:bg-red-900/20 hover:scale-105"
+                    : "border-slate-200 theme-dark:border-slate-700/70 text-slate-400 cursor-not-allowed"
+                )}
+                disabled={!isAuthenticated}
+              >
+                Sign out
+              </button>
+            </div>
           </div>
         </div>
       </div>

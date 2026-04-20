@@ -65,6 +65,19 @@ export function getChecklistProgress(checklist: { done: boolean }[]): number {
   return Math.round((checklist.filter((i) => i.done).length / checklist.length) * 100);
 }
 
+export function optimizeAvatarUrl(url: string | null | undefined, size = 64): string | null {
+  if (!url) return null;
+
+  // Google avatars support size suffixes like "=s96-c"; requesting smaller sizes improves first paint.
+  if (url.includes("googleusercontent.com")) {
+    const normalized = url.replace(/=s\d+-c$/, `=s${size}-c`);
+    if (normalized !== url) return normalized;
+    return `${url}=s${size}-c`;
+  }
+
+  return url;
+}
+
 export function timeAgo(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();

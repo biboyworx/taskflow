@@ -17,7 +17,7 @@ import {
   Archive,
   Tag,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, optimizeAvatarUrl } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 import { Priority } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
@@ -224,10 +224,19 @@ export function Navbar() {
       return;
     }
 
+    const metadataAvatar = optimizeAvatarUrl(
+      (session.user.user_metadata?.avatar_url as string | undefined) ?? null,
+      64,
+    );
+    if (metadataAvatar) {
+      setUserAvatarUrl(metadataAvatar);
+      return;
+    }
+
     const fetchUserAvatar = async () => {
       try {
         const profile = await fetchUserProfile(session.user.id);
-        setUserAvatarUrl(profile.avatar_url || null);
+        setUserAvatarUrl(optimizeAvatarUrl(profile.avatar_url, 64));
       } catch (error) {
         console.error("Failed to fetch user avatar:", error);
       }
@@ -943,7 +952,15 @@ export function Navbar() {
                 style={{ backgroundColor: "#14b8a6" }}
               >
                 {userAvatarUrl ? (
-                  <img src={userAvatarUrl} alt="User avatar" className="w-full h-full object-cover" />
+                  <img
+                    src={userAvatarUrl}
+                    alt="User avatar"
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   userInitials
                 )}
