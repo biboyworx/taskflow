@@ -65,17 +65,43 @@ export function getChecklistProgress(checklist: { done: boolean }[]): number {
   return Math.round((checklist.filter((i) => i.done).length / checklist.length) * 100);
 }
 
-export function optimizeAvatarUrl(url: string | null | undefined, size = 64): string | null {
+function sanitizeAvatarUrl(url: string | null | undefined): string | null {
   if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed || trimmed === "null" || trimmed === "undefined") return null;
+  return trimmed;
+}
+
+export function optimizeAvatarUrl(url: string | null | undefined, size = 64): string | null {
+  const safeUrl = sanitizeAvatarUrl(url);
+  if (!safeUrl) return null;
 
   // Google avatars support size suffixes like "=s96-c"; requesting smaller sizes improves first paint.
-  if (url.includes("googleusercontent.com")) {
-    const normalized = url.replace(/=s\d+-c$/, `=s${size}-c`);
-    if (normalized !== url) return normalized;
-    return `${url}=s${size}-c`;
+  if (safeUrl.includes("googleusercontent.com")) {
+    const normalized = safeUrl.replace(/=s\d+-c$/, `=s${size}-c`);
+    if (normalized !== safeUrl) return normalized;
+    return `${safeUrl}=s${size}-c`;
   }
 
-  return url;
+  return safeUrl;
+}
+
+export function extractAvatarUrlFromUser(
+  user: {
+    user_metadata?: Record<string, unknown> | null;
+    identities?: Array<{ identity_data?: Record<string, unknown> | null }> | null;
+  } | null | undefined,
+  size = 64,
+): string | null {
+  if (!user) return null;
+  const identityData = user.identities?.[0]?.identity_data ?? null;
+  const rawAvatar =
+    (user.user_metadata?.avatar_url as string | undefined) ??
+    (user.user_metadata?.picture as string | undefined) ??
+    (identityData?.avatar_url as string | undefined) ??
+    (identityData?.picture as string | undefined) ??
+    null;
+  return optimizeAvatarUrl(rawAvatar, size);
 }
 
 export function timeAgo(dateStr: string): string {

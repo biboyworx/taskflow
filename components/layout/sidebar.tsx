@@ -18,10 +18,11 @@ import {
   MoreVertical,
   Trash2,
 } from "lucide-react";
-import { cn, optimizeAvatarUrl } from "@/lib/utils";
+import { cn, extractAvatarUrlFromUser, optimizeAvatarUrl } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/components/auth-provider";
 import { fetchUserProfile } from "@/lib/data";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
 type NavItem = {
@@ -63,10 +64,7 @@ export function Sidebar() {
       return;
     }
 
-    const metadataAvatar = optimizeAvatarUrl(
-      (user.user_metadata?.avatar_url as string | undefined) ?? null,
-      64,
-    );
+    const metadataAvatar = extractAvatarUrlFromUser(user, 64);
     if (metadataAvatar) {
       setUserAvatarUrl(metadataAvatar);
       return;
@@ -74,6 +72,12 @@ export function Sidebar() {
 
     const fetchUserAvatar = async () => {
       try {
+        const { data: authData } = await supabase.auth.getUser();
+        const authAvatar = extractAvatarUrlFromUser(authData?.user ?? null, 64);
+        if (authAvatar) {
+          setUserAvatarUrl(authAvatar);
+          return;
+        }
         const profile = await fetchUserProfile(user.id);
         setUserAvatarUrl(optimizeAvatarUrl(profile.avatar_url, 64));
       } catch (error) {

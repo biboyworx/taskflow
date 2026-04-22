@@ -1,14 +1,15 @@
 "use client";
-import React from "react";
+import React, { useMemo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
   MessageSquare, Paperclip, Calendar, CheckSquare,
   GripVertical
 } from "lucide-react";
-import { cn, formatDate, isOverdue, isDueSoon, PRIORITY_CONFIG, getChecklistProgress, optimizeAvatarUrl } from "@/lib/utils";
+import { cn, formatDate, isOverdue, isDueSoon, PRIORITY_CONFIG, getChecklistProgress, extractAvatarUrlFromUser, optimizeAvatarUrl } from "@/lib/utils";
 import { Task } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
+import { useAuth } from "@/components/auth-provider";
 
 interface TaskCardProps {
   task: Task;
@@ -16,10 +17,15 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, overlay }: TaskCardProps) {
+  const { session } = useAuth();
   const setSelectedTask = useAppStore((s) => s.setSelectedTask);
   const selectedTaskIds = useAppStore((s) => s.selectedTaskIds);
   const toggleSelectTask = useAppStore((s) => s.toggleSelectTask);
   const isSelected = selectedTaskIds.includes(task.id);
+  const currentUserAvatar = useMemo(
+    () => extractAvatarUrlFromUser(session?.user ?? null, 48),
+    [session?.user],
+  );
 
   const {
     attributes, listeners, setNodeRef,
@@ -141,16 +147,22 @@ export function TaskCard({ task, overlay }: TaskCardProps) {
         <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-white/70">
           {/* Assignees */}
           <div className="flex items-center -space-x-1.5">
-            {task.assignees.slice(0, 3).map((a) => (
+            {task.assignees.slice(0, 3).map((a) => {
+              const avatarUrl = a.avatar
+                ? (optimizeAvatarUrl(a.avatar, 48) || a.avatar)
+                : a.id === session?.user?.id
+                  ? currentUserAvatar
+                  : null;
+              return (
               <div
                 key={a.id}
                 title={a.name}
                 className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white ring-1.5 ring-white shrink-0 overflow-hidden"
                 style={{ backgroundColor: a.color, boxShadow: "0 0 0 1.5px white" }}
               >
-                {a.avatar ? (
+                {avatarUrl ? (
                   <img
-                    src={optimizeAvatarUrl(a.avatar, 48) || a.avatar}
+                    src={avatarUrl}
                     alt={a.name}
                     decoding="async"
                     referrerPolicy="no-referrer"
@@ -160,7 +172,8 @@ export function TaskCard({ task, overlay }: TaskCardProps) {
                   a.initials
                 )}
               </div>
-            ))}
+            );
+            })}
           </div>
 
           {/* Meta */}

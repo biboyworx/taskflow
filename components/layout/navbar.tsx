@@ -17,7 +17,7 @@ import {
   Archive,
   Tag,
 } from "lucide-react";
-import { cn, optimizeAvatarUrl } from "@/lib/utils";
+import { cn, extractAvatarUrlFromUser, optimizeAvatarUrl } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 import { Priority } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
@@ -224,10 +224,7 @@ export function Navbar() {
       return;
     }
 
-    const metadataAvatar = optimizeAvatarUrl(
-      (session.user.user_metadata?.avatar_url as string | undefined) ?? null,
-      64,
-    );
+    const metadataAvatar = extractAvatarUrlFromUser(session.user, 64);
     if (metadataAvatar) {
       setUserAvatarUrl(metadataAvatar);
       return;
@@ -235,6 +232,12 @@ export function Navbar() {
 
     const fetchUserAvatar = async () => {
       try {
+        const { data } = await supabase.auth.getUser();
+        const authAvatar = extractAvatarUrlFromUser(data?.user ?? null, 64);
+        if (authAvatar) {
+          setUserAvatarUrl(authAvatar);
+          return;
+        }
         const profile = await fetchUserProfile(session.user.id);
         setUserAvatarUrl(optimizeAvatarUrl(profile.avatar_url, 64));
       } catch (error) {
@@ -1074,6 +1077,19 @@ export function Navbar() {
                   </p>
                 </div>
                 <div className="h-px bg-white/70 theme-dark:bg-slate-700/70 my-1" />
+                <button
+                  onClick={async () => {
+                    setShowUserMenu(false);
+                    if (typeof window !== "undefined") {
+                      window.sessionStorage.setItem("profileRefreshRequested", "1");
+                    }
+                    await signInWithGoogle(window.location.href);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-white/80 theme-dark:text-slate-200 theme-dark:hover:bg-slate-700/60 transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  Refresh Google profile
+                </button>
                 <button
                   onClick={async () => {
                     await signOut();

@@ -91,7 +91,7 @@ export async function signInWithGoogle(redirectTo?: string) {
     provider: "google",
     options: {
       ...(redirectTo ? { redirectTo } : {}),
-      scopes: "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
+      scopes: "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
       queryParams: {
         access_type: "offline",
         prompt: "consent",

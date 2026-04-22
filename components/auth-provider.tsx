@@ -13,6 +13,9 @@ import { supabase } from "@/lib/supabase";
 import { signOut as signOutApi } from "@/lib/auth";
 import { useUser } from "@/hooks/auth/useUser";
 import { AUTH_QUERY_KEY } from "@/hooks/auth/useLogin";
+import { syncUserProfile } from "@/lib/data";
+import { extractAvatarUrlFromUser } from "@/lib/utils";
+import { toast } from "sonner";
 
 import type { AuthContextValue } from "@/types/auth";
 
@@ -50,6 +53,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     hasAcceptedInvitesRef.current = userId;
     fetch("/api/invite/accept", { method: "POST" }).catch(() => {});
   }, [session?.user?.id, isLoading, isFetching]);
+
+  useEffect(() => {
+    const user = session?.user;
+    if (!user || isLoading || isFetching) return;
+    syncUserProfile(user).catch((error) => {
+      console.warn("Failed to sync profile:", error);
+    });
+  }, [session?.user, isLoading, isFetching]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const user = session?.user;
+    if (!user || isLoading || isFetching) return;
+    const refreshRequested = window.sessionStorage.getItem("profileRefreshRequested");
+    if (!refreshRequested) return;
+
+    const avatarUrl = extractAvatarUrlFromUser(user, 64);
+    if (avatarUrl) {
+      toast.success("Google profile refreshed.");
+    } else {
+      toast.error("Google profile did not return an avatar.");
+    }
+    window.sessionStorage.removeItem("profileRefreshRequested");
+  }, [session?.user, isLoading, isFetching]);
 
   useEffect(() => {
     const accessToken = session?.provider_token ?? null;

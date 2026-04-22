@@ -30,9 +30,16 @@ const PROFILE_CACHE_TTL_MS = 2 * 60 * 1000;
 const profileCache = new Map<string, { value: ProfileRow; expiresAt: number }>();
 const profileInFlight = new Map<string, Promise<ProfileRow>>();
 
-async function ensureProfile(user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }) {
+async function ensureProfile(user: { id: string; email?: string | null; user_metadata?: Record<string, unknown>; identities?: Array<{ identity_data?: Record<string, unknown> | null }> }) {
   const fullName = (user.user_metadata?.full_name as string | undefined) ?? null;
-  const avatarUrl = optimizeAvatarUrl((user.user_metadata?.avatar_url as string | undefined) ?? null);
+  const identityData = user.identities?.[0]?.identity_data ?? null;
+  const rawAvatar =
+    (user.user_metadata?.avatar_url as string | undefined) ??
+    (user.user_metadata?.picture as string | undefined) ??
+    (identityData?.avatar_url as string | undefined) ??
+    (identityData?.picture as string | undefined) ??
+    null;
+  const avatarUrl = optimizeAvatarUrl(rawAvatar);
   const initials = deriveInitials(fullName, user.email ?? null);
 
   const { error } = await supabase
@@ -46,6 +53,17 @@ async function ensureProfile(user: { id: string; email?: string | null; user_met
     });
 
   if (error) throw error;
+}
+
+export async function syncUserProfile(user: { id: string; email?: string | null; user_metadata?: Record<string, unknown>; identities?: Array<{ identity_data?: Record<string, unknown> | null }> }) {
+  let sourceUser = user;
+  if (!user.identities || user.identities.length === 0) {
+    const { data } = await supabase.auth.getUser();
+    if (data?.user) {
+      sourceUser = data.user as typeof user;
+    }
+  }
+  await ensureProfile(sourceUser);
 }
 
 function deriveInitials(name?: string | null, email?: string | null) {
