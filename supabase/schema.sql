@@ -64,6 +64,8 @@ create table if not exists projects (
   description text default '',
   color text default '#14b8a6',
   emoji text default '📁',
+  logo_url text,
+  banner_url text,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );

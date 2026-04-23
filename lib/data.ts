@@ -215,6 +215,23 @@ export async function deleteProject(projectId: string) {
   if (error) throw error;
 }
 
+export async function updateProject(projectId: string, updates: {
+  emoji?: string;
+  logoUrl?: string | null;
+  bannerUrl?: string | null;
+}) {
+  const dbUpdates: Record<string, any> = {};
+  if (updates.emoji !== undefined) dbUpdates.emoji = updates.emoji;
+  if (updates.logoUrl !== undefined) dbUpdates.logo_url = updates.logoUrl;
+  if (updates.bannerUrl !== undefined) dbUpdates.banner_url = updates.bannerUrl;
+
+  const { error } = await supabase
+    .from("projects")
+    .update(dbUpdates)
+    .eq("id", projectId);
+  if (error) throw error;
+}
+
 export async function fetchProjectMembers(projectId: string) {
   const { data, error } = await supabase
     .from("project_members")

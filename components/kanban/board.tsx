@@ -32,7 +32,13 @@ export function Board() {
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const preferences = useAppStore((s) => s.preferences);
   const currentMemberRole = useAppStore((s) => s.currentMemberRole);
+  const projects = useAppStore((s) => s.projects);
   const { user } = useAuth();
+  
+  const activeProject = useMemo(
+    () => projects.find((p) => p.id === activeProjectId),
+    [projects, activeProjectId]
+  );
 
   const actor = useMemo(() => {
     if (!user) return null;
@@ -168,6 +174,17 @@ export function Board() {
         onDragEnd={handleDragEnd}
       >
         <div className="flex flex-col h-full w-full overflow-hidden bg-white/50">
+          {/* Project Banner */}
+          {activeProject?.bannerUrl && (
+            <div className="w-full h-32 rounded-lg overflow-hidden mb-4 mx-6 mt-5 shrink-0">
+              <img
+                src={activeProject.bannerUrl}
+                alt={activeProject.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+          
           {/* Kanban Board */}
           <div
             className={cn(

@@ -1061,6 +1061,8 @@ export function Navbar() {
                     decoding="async"
                     fetchPriority="high"
                     referrerPolicy="no-referrer"
+                    onLoad={() => console.log("[navbar] avatar loaded:", userAvatarUrl)}
+                    onError={() => console.error("[navbar] avatar failed to load:", userAvatarUrl)}
                     className="w-full h-full object-cover"
                   />
                 ) : (

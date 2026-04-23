@@ -70,6 +70,8 @@ export interface Project {
   description: string;
   color: string;
   emoji: string;
+  logoUrl?: string | null;
+  bannerUrl?: string | null;
   members?: Member[];
   tasks?: Task[];
   activities?: ActivityItem[];

@@ -17,6 +17,7 @@ import {
   Circle,
   MoreVertical,
   Trash2,
+  Edit,
 } from "lucide-react";
 import { cn, extractAvatarUrlFromUser, optimizeAvatarUrl } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
@@ -24,6 +25,7 @@ import { useAuth } from "@/components/auth-provider";
 import { fetchUserProfile } from "@/lib/data";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { ProjectEditModal } from "@/components/modals/project-edit-modal";
 
 type NavItem = {
   href: string;
@@ -48,6 +50,7 @@ export function Sidebar() {
   const setActiveProject = useAppStore((s) => s.setActiveProject);
   const addProject = useAppStore((s) => s.addProject);
   const deleteProject = useAppStore((s) => s.deleteProject);
+  const updateProject = useAppStore((s) => s.updateProject);
   const loadProjectData = useAppStore((s) => s.loadProjectData);
   const currentMemberRole = useAppStore((s) => s.currentMemberRole);
   const { isAuthenticated, user } = useAuth();
@@ -56,6 +59,7 @@ export function Sidebar() {
   const [newProjectName, setNewProjectName] = useState("");
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
   const [openProjectMenu, setOpenProjectMenu] = useState<string | null>(null);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
 
   // Fetch user avatar
   useEffect(() => {
@@ -94,13 +98,14 @@ export function Sidebar() {
   }, [pathname]);
 
   return (
-    <aside
-      className={cn(
-        "sidebar-transition flex flex-col h-full bg-gradient-to-b from-white/80 via-white/70 to-white/60 backdrop-blur-xl border-r border-white/70 shadow-lg relative z-20 shrink-0",
-        collapsed ? "w-16" : "w-64",
-      )}
-      onClick={() => setOpenProjectMenu(null)}
-    >
+    <>
+      <aside
+        className={cn(
+          "sidebar-transition flex flex-col h-full bg-gradient-to-b from-white/80 via-white/70 to-white/60 backdrop-blur-xl border-r border-white/70 shadow-lg relative z-20 shrink-0",
+          collapsed ? "w-16" : "w-64",
+        )}
+        onClick={() => setOpenProjectMenu(null)}
+      >
       {/* Logo */}
       <div
         className={cn(
@@ -253,9 +258,17 @@ export function Sidebar() {
                             : "text-slate-500 hover:text-slate-800 hover:bg-white/80 hover:shadow-sm border border-transparent hover:border-slate-200/50",
                         )}
                       >
-                        <span className="text-lg leading-none">
-                          {project.emoji}
-                        </span>
+                        {project.logoUrl ? (
+                          <img
+                            src={project.logoUrl}
+                            alt={project.name}
+                            className="w-5 h-5 rounded object-cover shrink-0"
+                          />
+                        ) : (
+                          <span className="text-lg leading-none">
+                            {project.emoji}
+                          </span>
+                        )}
                         <span className={cn("text-sm font-medium truncate flex-1", isActive && "font-semibold")}>
                           {project.name}
                         </span>
@@ -283,6 +296,18 @@ export function Sidebar() {
                           className="absolute top-full right-0 mt-1 z-50 bg-white/95 theme-dark:bg-slate-800/95 backdrop-blur-xl rounded-lg shadow-lg border border-white/70 theme-dark:border-slate-700/70 py-1 min-w-[180px]"
                           onClick={(e) => e.stopPropagation()}
                         >
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setEditingProjectId(project.id);
+                              setOpenProjectMenu(null);
+                            }}
+                            className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 theme-dark:text-slate-200 theme-dark:hover:bg-slate-700/60 transition-colors"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                            Edit project
+                          </button>
                           <button
                             onClick={(e) => {
                               e.preventDefault();
@@ -329,6 +354,8 @@ export function Sidebar() {
                   decoding="async"
                   fetchPriority="high"
                   referrerPolicy="no-referrer"
+                  onLoad={() => console.log("[sidebar] avatar loaded:", userAvatarUrl)}
+                  onError={() => console.error("[sidebar] avatar failed to load:", userAvatarUrl)}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -364,5 +391,18 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+
+    {editingProjectId && (
+      <ProjectEditModal
+        project={projects.find(p => p.id === editingProjectId)!}
+        onClose={() => setEditingProjectId(null)}
+        onSave={async (updates) => {
+          await updateProject(editingProjectId, updates);
+          setEditingProjectId(null);
+          toast.success("Project updated successfully");
+        }}
+      />
+    )}
+    </>
   );
 }

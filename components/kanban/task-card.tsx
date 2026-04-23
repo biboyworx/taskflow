@@ -166,6 +166,8 @@ export function TaskCard({ task, overlay }: TaskCardProps) {
                     alt={a.name}
                     decoding="async"
                     referrerPolicy="no-referrer"
+                    onLoad={() => console.log("[task-card] avatar loaded:", a.name, avatarUrl)}
+                    onError={() => console.error("[task-card] avatar failed to load:", a.name, avatarUrl)}
                     className="w-full h-full object-cover"
                   />
                 ) : (

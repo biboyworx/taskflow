@@ -69,7 +69,12 @@ function sanitizeAvatarUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   const trimmed = url.trim();
   if (!trimmed || trimmed === "null" || trimmed === "undefined") return null;
-  return trimmed;
+  // Remove any whitespace or newlines within the URL
+  const cleaned = trimmed.replace(/\s+/g, "");
+  if (!cleaned) return null;
+  // Must start with http:// or https://
+  if (!cleaned.match(/^https?:\/\//)) return null;
+  return cleaned;
 }
 
 export function optimizeAvatarUrl(url: string | null | undefined, size = 64): string | null {
@@ -78,9 +83,9 @@ export function optimizeAvatarUrl(url: string | null | undefined, size = 64): st
 
   // Google avatars support size suffixes like "=s96-c"; requesting smaller sizes improves first paint.
   if (safeUrl.includes("googleusercontent.com")) {
-    const normalized = safeUrl.replace(/=s\d+-c$/, `=s${size}-c`);
-    if (normalized !== safeUrl) return normalized;
-    return `${safeUrl}=s${size}-c`;
+    // Remove any existing size parameter (=s<digits>-c)
+    const withoutSize = safeUrl.replace(/=s\d+-c/g, "");
+    return `${withoutSize}=s${size}-c`;
   }
 
   return safeUrl;
@@ -101,7 +106,10 @@ export function extractAvatarUrlFromUser(
     (identityData?.avatar_url as string | undefined) ??
     (identityData?.picture as string | undefined) ??
     null;
-  return optimizeAvatarUrl(rawAvatar, size);
+  const result = optimizeAvatarUrl(rawAvatar, size);
+  if (result) console.log("[extractAvatarUrlFromUser] found avatar:", result);
+  else console.log("[extractAvatarUrlFromUser] no avatar found. rawAvatar=", rawAvatar, "user.identities=", user.identities, "user.user_metadata=", user.user_metadata);
+  return result;
 }
 
 export function timeAgo(dateStr: string): string {

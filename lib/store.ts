@@ -58,6 +58,7 @@ import {
   setTaskTags,
   toggleChecklistItem as toggleChecklistItemApi,
   updateTask as updateTaskApi,
+  updateProject as updateProjectApi,
 } from "./data";
 import { getColumnTheme } from "./utils";
 
@@ -107,6 +108,7 @@ interface AppState {
   loadInvites: (email: string) => Promise<void>;
   addProject: (name: string) => Promise<void>;
   deleteProject: (projectId: string, ownerId: string) => Promise<void>;
+  updateProject: (projectId: string, updates: { emoji?: string; logoUrl?: string | null; bannerUrl?: string | null }) => Promise<void>;
   removeProjectMember: (projectId: string, userId: string) => Promise<void>;
   acceptInvite: (invite: Invite, userId: string) => Promise<void>;
   declineInvite: (inviteId: string) => Promise<void>;
@@ -320,6 +322,22 @@ export const useAppStore = create<AppState>()(
             currentMemberRole: null,
           });
         }
+      },
+
+      updateProject: async (projectId, updates) => {
+        await updateProjectApi(projectId, updates);
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === projectId
+              ? {
+                  ...p,
+                  emoji: updates.emoji ?? p.emoji,
+                  logoUrl: updates.logoUrl !== undefined ? updates.logoUrl : p.logoUrl,
+                  bannerUrl: updates.bannerUrl !== undefined ? updates.bannerUrl : p.bannerUrl,
+                }
+              : p,
+          ),
+        }));
       },
 
       removeProjectMember: async (projectId, userId) => {
